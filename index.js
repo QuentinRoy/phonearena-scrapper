@@ -11,7 +11,8 @@ const {
   scrapePhoneAddressFromListingPage,
 } = require('./modules/scrape-phones-listing');
 const scrapePhonePage = require('./modules/scrape-phone-page');
-const { PageManager, retry } = require('./modules/utils');
+const PageManager = require('./modules/page-manager');
+const { retry } = require('./modules/utils');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
@@ -30,8 +31,7 @@ program
     'Update (re-scape) existing data file if they were scrapped before the provided date.',
     moment,
   )
-  // .option('-U, --update-all', 'Update (re-scape) all existing data files.')
-  .option('-c, --concurrency <n>', 'Number of parallel scrapping', parseInt, 4)
+  .option('-c, --concurrency <n>', 'Number of parallel scrapping', parseInt, 20)
   .option(
     '--scrapping-retry <n>',
     'Number of time a scrapping should be retried if failed',
@@ -45,7 +45,7 @@ program
     3,
   )
   .option(
-    '--no-headless <n>',
+    '--no-headless',
     'If the scrapping should happening without showing the browser',
   )
   .option('-o, --output-dir <path>', 'Output directory', './out')
@@ -69,6 +69,7 @@ log.debug({
   concurrency,
   loadingRetry,
   scrappingRetry,
+  headless,
 });
 
 const main = async () => {
