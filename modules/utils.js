@@ -1,3 +1,5 @@
+const sanitizeFileName = require('sanitize-filename');
+
 const retry = n => f => {
   // Set up end of recursion.
   if (n <= 0) return f();
@@ -15,4 +17,9 @@ const retry = n => f => {
   }
 };
 
-module.exports = { retry };
+const getPhoneFileName = ({ address }) =>
+  `${sanitizeFileName(address.replace('https://www.phonearena.com/', ''), {
+    replacement: '_',
+  })}.json`;
+
+module.exports = { retry, getPhoneFileName };

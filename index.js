@@ -12,7 +12,7 @@ const {
 } = require('./modules/scrape-phones-listing');
 const scrapePhonePage = require('./modules/scrape-phone-page');
 const PageManager = require('./modules/page-manager');
-const { retry } = require('./modules/utils');
+const { retry, getPhoneFileName } = require('./modules/utils');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
@@ -88,7 +88,6 @@ const main = async () => {
 
   const speed = () => doneRecently / Math.min(TIME_WINDOW, Date.now() - start);
 
-  log.info('> Scrapping phones listings...');
   // Get all listing pages.
   const allListingPages = await pageManager.withPage(
     LISTING_PAGE_ADDRESS,
@@ -96,7 +95,8 @@ const main = async () => {
   );
   const nListings = allListingPages.length;
 
-  log.debug(`${nListings} listing pages found`);
+  log.info(`> Found ${nListings} list pages. Scrapping phones listings...`);
+
   // Scrape them all!
   const phoneAddresses = await Promise.all(
     allListingPages.map(
@@ -132,12 +132,15 @@ const main = async () => {
     await mkdir(outputDir);
   }
 
-  log.info('> Scrapping phones...');
+  log.info(`> Found ${n} phone pages. Scrapping phones...`);
 
   await Promise.all(
     phoneAddresses.map(async ({ name, address }) => {
       try {
-        const outputFile = path.resolve(outputDir, `${name}.json`);
+        const outputFile = path.resolve(
+          outputDir,
+          getPhoneFileName({ address }),
+        );
         if (update !== true && (await exists(outputFile))) {
           let shouldNotUpdate;
           if (update == null) {
@@ -174,7 +177,7 @@ const main = async () => {
         }, TIME_WINDOW);
         const eta = (n - phonePagedone) / speed();
         log.info(
-          `${name} scrapped (${phonePagedone}/${n}, speed: ${Math.round(
+          `"${name}" scrapped (${phonePagedone}/${n}, speed: ${Math.round(
             speed() * 60000,
           )}/min, time elapsed: ${moment
             .duration(Date.now() - start)
