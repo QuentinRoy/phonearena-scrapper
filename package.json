@@ -5,6 +5,7 @@
   "main": "index.js",
   "license": "MIT",
   "author": "Quentin Roy <quentin@quentinroy.fr>",
+  "private": true,
   "dependencies": {
     "camelcase": "^5.0.0",
     "commander": "^2.16.0",
