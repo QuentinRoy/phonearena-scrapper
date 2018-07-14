@@ -12,7 +12,8 @@
     "memize": "^1.0.5",
     "moment": "^2.22.2",
     "puppeteer": "^1.5.0",
-    "sanitize-filename": "^1.6.1"
+    "sanitize-filename": "^1.6.1",
+    "standard-version": "^4.4.0"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
@@ -23,6 +24,7 @@
     "prettier": "^1.13.7"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "release": "standard-version"
   }
 }
