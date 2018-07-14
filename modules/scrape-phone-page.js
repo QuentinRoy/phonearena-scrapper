@@ -2,6 +2,12 @@ const scrapePhonePage = page =>
   page.$eval('#content', async contentDiv => {
     const phoneDiv = contentDiv.querySelector('#phone');
 
+    // Take a string and remove its parenthesis
+    const removeParenthesis = (string, max = Number.POSITIVE_INFINITY) =>
+      max > 0 && string.startsWith('(') && string.endsWith(')')
+        ? removeParenthesis(string.slice(1, -1).trim(), max - 1)
+        : string;
+
     // Parse quickLook features.
     const mapFeature = args => elt => ({
       name: elt.textContent,
@@ -129,8 +135,7 @@ const scrapePhonePage = page =>
         .textContent.replace(dirtyVariantComment || '', '')
         .trim();
       const variantComment =
-        dirtyVariantComment &&
-        /^\(?(.*[^)])\)?$/.exec(dirtyVariantComment)[1].trim();
+        dirtyVariantComment && removeParenthesis(dirtyVariantComment);
       const variantDescriptionElt = elt.querySelector('.description');
       const variantDescription = variantDescriptionElt
         ? variantDescriptionElt.textContent.trim()
