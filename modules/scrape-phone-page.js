@@ -53,7 +53,7 @@ const scrapePhonePage = page =>
 
     const scrapeSpecItemValue = elt => {
       const firstLi = elt.querySelector(':scope > ul > li:first-child');
-      if (firstLi.classList.contains('clear')) return undefined;
+      if (!firstLi || firstLi.classList.contains('clear')) return undefined;
       const valueElt = firstLi.querySelector('ul li') || firstLi;
       return [...valueElt.childNodes]
         .find(n => n.nodeType === 3 && n.textContent.trim())
@@ -85,9 +85,10 @@ const scrapePhonePage = page =>
     ];
     const specs = specBoxes.map(elt => {
       const name = elt.querySelector('.htitle').textContent;
-      const specItems = Array.from(
-        elt.querySelectorAll(':scope > ul > li'),
-      ).map(scrapeSpecItem);
+      const specItems = Array.from(elt.querySelectorAll(':scope > ul > li'))
+        .map(scrapeSpecItem)
+        // Filters item that have no values and no subitems.
+        .filter(({ value, items }) => value != null || items != null);
 
       return { name, ...(specItems.length ? { items: specItems } : {}) };
     });
