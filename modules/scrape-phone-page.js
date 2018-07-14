@@ -151,10 +151,14 @@ const scrapePhonePage = page =>
       };
     });
 
+    // Scrape image address
+    const image = phoneDiv.querySelector('.quicklook .lead').href;
+
     return {
       name,
       brand,
       type,
+      image,
       metaInfo,
       features: quickLookFeatures,
       specs,
