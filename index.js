@@ -12,7 +12,7 @@ const {
 } = require('./modules/scrape-phones-listing');
 const scrapePhonePage = require('./modules/scrape-phone-page');
 const PageManager = require('./modules/page-manager');
-const { retry, getPhoneFileName } = require('./modules/utils');
+const { retry, getPhoneFileName, download } = require('./modules/utils');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
@@ -50,6 +50,7 @@ program
   )
   .option('-o, --output-dir <path>', 'Output directory', './out')
   .option('-s, --success-only', 'Stop at the first unsuccessful scrapping')
+  .option('--no-image-download')
   .parse(process.argv);
 
 const {
@@ -60,6 +61,7 @@ const {
   loadingRetry,
   scrappingRetry,
   headless,
+  imageDownload,
 } = program;
 
 log.debug({
@@ -70,6 +72,7 @@ log.debug({
   loadingRetry,
   scrappingRetry,
   headless,
+  imageDownload,
 });
 
 const main = async () => {
@@ -82,8 +85,8 @@ const main = async () => {
   const retryT = retry(scrappingRetry);
 
   let failed = false;
-  let phonePagedone = 0;
-  let listingPagedone = 0;
+  let phonePagesDone = 0;
+  let listingPagesDone = 0;
   let doneRecently = 0;
 
   const speed = () => doneRecently / Math.min(TIME_WINDOW, Date.now() - start);
@@ -106,13 +109,13 @@ const main = async () => {
           return scrapePhoneAddressFromListingPage(page);
         });
 
-        listingPagedone += 1;
+        listingPagesDone += 1;
         doneRecently += 1;
         setTimeout(() => {
           doneRecently -= 1;
         }, TIME_WINDOW);
         log.info(
-          `${addr} scrapped (${listingPagedone}/${nListings}, speed: ${Math.round(
+          `${addr} scrapped (${listingPagesDone}/${nListings}, speed: ${Math.round(
             speed() * 60000,
           )}/min, time elapsed: ${moment
             .duration(Date.now() - start)
@@ -151,7 +154,7 @@ const main = async () => {
             shouldNotUpdate = moment(lastScrapDate).diff(update) >= 0;
           }
           if (shouldNotUpdate) {
-            phonePagedone += 1;
+            phonePagesDone += 1;
             log.debug(`> Not updating ${name}`);
             return;
           }
@@ -169,15 +172,33 @@ const main = async () => {
               scrapper: `${scrapperName} v${version}`,
             })),
         );
+
+        // Download the image.
+        if (imageDownload && phoneData.image) {
+          const imageExt = path.extname(/^[^(?|#)]+/.exec(phoneData.image)[0]);
+          const outputFileBaseName = path.basename(
+            outputFile,
+            path.extname(outputFile),
+          );
+          await download(
+            phoneData.image,
+            path.resolve(
+              path.dirname(outputFile),
+              outputFileBaseName + imageExt,
+            ),
+          );
+        }
+        // Write the file.
         await writeFile(outputFile, JSON.stringify(phoneData, null, 2));
-        phonePagedone += 1;
+
+        phonePagesDone += 1;
         doneRecently += 1;
         setTimeout(() => {
           doneRecently -= 1;
         }, TIME_WINDOW);
-        const eta = (n - phonePagedone) / speed();
+        const eta = (n - phonePagesDone) / speed();
         log.info(
-          `"${name}" scrapped (${phonePagedone}/${n}, speed: ${Math.round(
+          `"${name}" scrapped (${phonePagesDone}/${n}, speed: ${Math.round(
             speed() * 60000,
           )}/min, time elapsed: ${moment
             .duration(Date.now() - start)

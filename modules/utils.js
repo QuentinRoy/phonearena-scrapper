@@ -1,4 +1,6 @@
 const sanitizeFileName = require('sanitize-filename');
+const http = require('https');
+const fs = require('fs');
 
 const retry = n => f => {
   // Set up end of recursion.
@@ -22,4 +24,21 @@ const getPhoneFileName = ({ address }) =>
     replacement: '_',
   })}.json`;
 
-module.exports = { retry, getPhoneFileName };
+const download = (url, dest) =>
+  new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest);
+    http
+      .get(url, response => {
+        response.pipe(file);
+        file.on('finish', () => {
+          file.close(resolve); // close() is async, call cb after close completes.
+        });
+      })
+      .on('error', err => {
+        // Handle errors
+        fs.unlink(dest); // Delete the file async. (But we don't check the result)
+        reject(err);
+      });
+  });
+
+module.exports = { retry, getPhoneFileName, download };

@@ -158,7 +158,9 @@ const scrapePhonePage = page =>
       name,
       brand,
       type,
-      image,
+      ...(image && /(https?:\/\/.*\.(?:png|jpe?g|gif))/i.exec(image)
+        ? { image }
+        : {}),
       metaInfo,
       features: quickLookFeatures,
       specs,
