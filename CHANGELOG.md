@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.4.0"></a>
+# [0.4.0](https://github.com/QuentinRoy/phonearena-scrapper/compare/v0.3.0...v0.4.0) (2018-07-16)
+
+
+### Bug Fixes
+
+* fix scrapping of the full specs of some phones ([98a5242](https://github.com/QuentinRoy/phonearena-scrapper/commit/98a5242))
+
+
+### Features
+
+* add some columns in the csv export scripts ([3cadd9f](https://github.com/QuentinRoy/phonearena-scrapper/commit/3cadd9f))
+* change json file names ([851bef8](https://github.com/QuentinRoy/phonearena-scrapper/commit/851bef8))
+
+
+
 <a name="0.3.0"></a>
 # [0.3.0](https://github.com/QuentinRoy/phonearena-scrapper/compare/v0.2.0...v0.3.0) (2018-07-16)
 
