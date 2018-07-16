@@ -61,9 +61,11 @@ const scrapePhonePage = page =>
       const firstLi = elt.querySelector(':scope > ul > li:first-child');
       if (!firstLi || firstLi.classList.contains('clear')) return undefined;
       const valueElt = firstLi.querySelector('ul li') || firstLi;
-      return [...valueElt.childNodes]
-        .find(n => n.nodeType === 3 && n.textContent.trim())
-        .textContent.trim();
+      const valueEltText = [...valueElt.childNodes].find(
+        n => n.nodeType === 3 && n.textContent.trim(),
+      );
+      if (valueEltText) return valueEltText.textContent.trim();
+      return undefined;
     };
 
     const scapeSpecSubItem = (subItemElt, defaultName = 'value') => {
