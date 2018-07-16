@@ -1,6 +1,6 @@
 {
   "name": "phonearena-scraper",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Scrap the phone arena website for a database of phones",
   "main": "index.js",
   "license": "MIT",
