@@ -12,7 +12,7 @@ const {
 } = require('./modules/scrape-phones-listing');
 const scrapePhonePage = require('./modules/scrape-phone-page');
 const PageManager = require('./modules/page-manager');
-const { retry, getPhoneFileName, download } = require('./modules/utils');
+const { retry, download, getPhoneId } = require('./modules/utils');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
@@ -31,17 +31,22 @@ program
     'Update (re-scape) existing data file if they were scrapped before the provided date.',
     moment,
   )
-  .option('-c, --concurrency <n>', 'Number of parallel scrapping', parseInt, 20)
   .option(
-    '--scrapping-retry <n>',
+    '-c, --concurrency <n>',
+    'Number of parallel scrapping',
+    x => parseInt(x, 10),
+    10,
+  )
+  .option(
+    '-s, --scrapping-retry <n>',
     'Number of time a scrapping should be retried if failed',
-    parseInt,
+    x => parseInt(x, 10),
     1,
   )
   .option(
-    '--loading-retry <n>',
+    '-l, --loading-retry <n>',
     'Number of time a page loading should be retried if failed',
-    parseInt,
+    x => parseInt(x, 10),
     3,
   )
   .option(
@@ -138,9 +143,11 @@ const main = async () => {
   log.info(`> Found ${n} phone pages. Scrapping phones...`);
 
   await Promise.all(
-    phoneAddresses.map(async ({ name, address, id }) => {
+    phoneAddresses.map(async ({ name, address: originalAddress }) => {
+      const address = `${originalAddress}/fullspecs`;
+      const id = getPhoneId({ name, address });
       try {
-        const outputFile = path.join(outputDir, `${id}.json`);
+        const outputFile = path.resolve(outputDir, `${id}.json`);
         if (update !== true && (await exists(outputFile))) {
           let shouldNotUpdate;
           if (update == null) {
@@ -157,27 +164,39 @@ const main = async () => {
           }
         }
         const phoneData = await retryT(() =>
-          pageManager
-            .withPage(address, page => {
-              log.debug(`> Scrapping phone "${name}"...`);
-              return scrapePhonePage(page);
-            })
-            .then(res => ({
-              ...res,
-              address,
-              scrapDate: new Date().toISOString(),
-              scrapper: `${scrapperName} v${version}`,
-            })),
+          pageManager.withPage(address, async page => {
+            log.debug(`> Scrapping phone "${name}"...`);
+            try {
+              const res = await scrapePhonePage(page);
+              log.debug(`> Done scrapping "${name}"`);
+              return {
+                ...res,
+                address,
+                scrapId: id,
+                scrapDate: new Date().toISOString(),
+                scrapper: `${scrapperName} v${version}`,
+              };
+            } catch (e) {
+              log.error(`> Error while scrapping "${name}" at ${address}`);
+              log.error(e);
+              await new Promise(resolve => setTimeout(resolve, 5000));
+              throw e;
+            }
+          }),
         );
 
         // Download the image.
         if (imageDownload && phoneData.image) {
           const imageExt = path.extname(/^[^(?|#)]+/.exec(phoneData.image)[0]);
+          log.debug(`> Downloading image for phone "${name}"...`);
           await download(
             phoneData.image,
-            path.join(path.dirname(outputFile), `${id}${imageExt}`),
+            path.resolve(path.dirname(outputFile), `${id}${imageExt}`),
           );
         }
+
+        log.debug(`> Writing "${name}" data...`);
+
         // Write the file.
         await writeFile(outputFile, JSON.stringify(phoneData, null, 2));
 

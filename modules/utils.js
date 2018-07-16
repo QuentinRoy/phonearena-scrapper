@@ -20,9 +20,14 @@ const retry = n => f => {
 };
 
 const getPhoneId = ({ address }) =>
-  sanitizeFileName(address.replace('https://www.phonearena.com/', ''), {
-    replacement: '_',
-  });
+  sanitizeFileName(
+    /^https?:\/\/www\.phonearena\.com\/phones\/(.+)\/fullspecs/.exec(
+      address,
+    )[1],
+    {
+      replacement: '_',
+    },
+  );
 
 const download = (url, dest) =>
   new Promise((resolve, reject) => {
@@ -30,9 +35,11 @@ const download = (url, dest) =>
     http
       .get(url, response => {
         response.pipe(file);
-        file.on('finish', () => {
-          file.close(resolve); // close() is async, call cb after close completes.
-        });
+        file
+          .on('finish', () => {
+            file.close(resolve); // close() is async, call cb after close completes.
+          })
+          .on('error', reject);
       })
       .on('error', err => {
         // Handle errors
