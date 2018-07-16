@@ -12,6 +12,8 @@ const { version } = require('../package.json');
 const readdir = promisify(fs.readdir);
 const readFile = promisify(fs.readFile);
 
+const inchesToMM = inches => inches * 25.4;
+
 log.setDefaultLevel('debug');
 
 program
@@ -55,6 +57,17 @@ const normalizeDate = date => {
   ).toISOString();
 };
 
+// Walk through the spec hierarchy and find an item.
+const findScrappingItemByName = (itemList, currentItemName, ...subItemPath) => {
+  const item = itemList.find(item_ => item_.name === currentItemName);
+  // console.log({ itemList, item, currentItemName, subItemPath });
+  if (!item) return undefined;
+  if (subItemPath.length > 0) {
+    return findScrappingItemByName(item.items, ...subItemPath);
+  }
+  return item.value;
+};
+
 const parseDimension = (dimensionsStr = '') => {
   // Some dimensions have a special 'x' character. Some use ',' instead of '.'.
   const dimMatch =
@@ -72,37 +85,58 @@ const parseWeight = weightStr =>
     .slice(1, 2)
     .map(x => +x.replace(',', '.'))[0];
 
+const parseDisplayResolution = (displayResolution = '') => {
+  const match = /(\d+)\s*(?:x|х)\s*(\d+)/.exec(displayResolution) || [];
+  const [parsedDisplayPixelWidth, parsedDisplayPixelHeight] = match
+    .slice(1, 3)
+    .map(x => +x.replace(',', '.'));
+  return { parsedDisplayPixelWidth, parsedDisplayPixelHeight };
+};
+
 const scrappingTransform = new Transform({
   objectMode: true,
   transform(scrapping, encoding, callback) {
-    const metaInfo = scrapping.metaInfo.reduce(
-      (res, i) => ({ ...res, [i.name]: i.value }),
-      {},
-    );
-    const designSpec = scrapping.specs.find(spec => spec.name === 'Design');
-    const dimensionSpec =
-      designSpec && designSpec.items.find(item => item.name === 'Dimensions');
-    const weightSpec =
-      designSpec && designSpec.items.find(item => item.name === 'Weight');
-    const formFactorSpec =
-      designSpec && designSpec.items.find(item => item.name === 'Form factor');
-    const parsedDimensions = parseDimension(
-      dimensionSpec && dimensionSpec.value,
-    );
-    const parsedWeight = parseWeight(weightSpec && weightSpec.value);
+    const findMetaInfoItem = (...args) =>
+      findScrappingItemByName(scrapping.metaInfo, ...args);
+    const findSpecItem = (...args) =>
+      findScrappingItemByName(scrapping.specs, ...args);
+
+    // Parse some design stuff.
+    const releaseDate = findMetaInfoItem('Release date');
+    const marketStatus = findMetaInfoItem('Market status');
+    const announceDate = findMetaInfoItem('Announced');
+
+    const dimensions = findSpecItem('Design', 'Dimensions');
+    const weight = findSpecItem('Design', 'Weight');
+    const formFactor = findSpecItem('Design', 'Form factor');
+    const os = findSpecItem('Design', 'OS');
+    const displaySize = findSpecItem('Display', 'Physical size');
+    const displayResolution = findSpecItem('Display', 'Resolution');
+    const screenToBodyRatio = findSpecItem('Display', 'Screen-to-body ratio');
 
     this.push({
       name: scrapping.name,
       brand: scrapping.brand,
-      releaseDate: metaInfo['Release date'] || null,
-      parsedReleaseDate: normalizeDate(metaInfo['Release date']),
-      announceDate: metaInfo.Announced || null,
-      parsedAnnounceDate: normalizeDate(metaInfo.Announced),
-      dimension: (dimensionSpec && dimensionSpec.value) || null,
-      ...parsedDimensions,
-      weight: weightSpec && weightSpec.value,
-      parsedWeight,
-      formFactor: formFactorSpec && formFactorSpec.value,
+      type: scrapping.type,
+      releaseDate,
+      parsedReleaseDate: normalizeDate(releaseDate),
+      marketStatus,
+      announceDate,
+      parsedAnnounceDate: normalizeDate(announceDate),
+      dimensions,
+      ...parseDimension(dimensions),
+      weight,
+      parsedWeight: parseWeight(weight),
+      formFactor,
+      os,
+      displaySize,
+      parsedDisplayMMDiagonal:
+        displaySize && inchesToMM(parseInt(displaySize, 10)),
+      displayResolution,
+      ...parseDisplayResolution(displayResolution),
+      screenToBodyRatio,
+      parsedScreenToBodyRatio:
+        screenToBodyRatio && parseFloat(screenToBodyRatio) / 100,
       scrappedPage: scrapping.address,
     });
     callback();
