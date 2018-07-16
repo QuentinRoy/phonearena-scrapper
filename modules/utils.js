@@ -19,10 +19,10 @@ const retry = n => f => {
   }
 };
 
-const getPhoneFileName = ({ address }) =>
-  `${sanitizeFileName(address.replace('https://www.phonearena.com/', ''), {
+const getPhoneId = ({ address }) =>
+  sanitizeFileName(address.replace('https://www.phonearena.com/', ''), {
     replacement: '_',
-  })}.json`;
+  });
 
 const download = (url, dest) =>
   new Promise((resolve, reject) => {
@@ -41,4 +41,4 @@ const download = (url, dest) =>
       });
   });
 
-module.exports = { retry, getPhoneFileName, download };
+module.exports = { retry, getPhoneId, download };

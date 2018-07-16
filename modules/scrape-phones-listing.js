@@ -1,3 +1,5 @@
+const { getPhoneId } = require('./utils');
+
 const scrapeListingPageAddresses = async page => {
   await new Promise(resolve => setTimeout(resolve, 3000));
   const lastListingPage = await page.$eval(
@@ -18,12 +20,23 @@ const scrapeListingPageAddresses = async page => {
   );
 };
 
-const scrapePhoneAddressFromListingPage = page =>
-  page.$eval('body', body =>
-    Array.from(
-      body.querySelectorAll('#phones .s_listing .s_block_4 h3 > a'),
-    ).map(a => ({ address: a.href, name: a.text })),
-  );
+const scrapePhoneAddressFromListingPage = (
+  page,
+  addressPostFix = '/fullspecs',
+) =>
+  page
+    .$eval('body', body =>
+      Array.from(
+        body.querySelectorAll('#phones .s_listing .s_block_4 h3 > a'),
+      ).map(a => ({ address: a.href, name: a.text })),
+    )
+    .then(res =>
+      res.map(r => ({
+        ...r,
+        address: `${r.address}${addressPostFix}`,
+        id: getPhoneId(r),
+      })),
+    );
 
 module.exports = {
   scrapeListingPageAddresses,

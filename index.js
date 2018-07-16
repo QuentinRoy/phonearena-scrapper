@@ -138,12 +138,9 @@ const main = async () => {
   log.info(`> Found ${n} phone pages. Scrapping phones...`);
 
   await Promise.all(
-    phoneAddresses.map(async ({ name, address }) => {
+    phoneAddresses.map(async ({ name, address, id }) => {
       try {
-        const outputFile = path.resolve(
-          outputDir,
-          getPhoneFileName({ address }),
-        );
+        const outputFile = path.join(outputDir, `${id}.json`);
         if (update !== true && (await exists(outputFile))) {
           let shouldNotUpdate;
           if (update == null) {
@@ -176,16 +173,9 @@ const main = async () => {
         // Download the image.
         if (imageDownload && phoneData.image) {
           const imageExt = path.extname(/^[^(?|#)]+/.exec(phoneData.image)[0]);
-          const outputFileBaseName = path.basename(
-            outputFile,
-            path.extname(outputFile),
-          );
           await download(
             phoneData.image,
-            path.resolve(
-              path.dirname(outputFile),
-              outputFileBaseName + imageExt,
-            ),
+            path.join(path.dirname(outputFile), `${id}${imageExt}`),
           );
         }
         // Write the file.
