@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.5.0"></a>
+# [0.5.0](https://github.com/QuentinRoy/phonearena-scrapper/compare/v0.4.0...v0.5.0) (2018-07-17)
+
+
+### Bug Fixes
+
+* remove outdated script ([a89bc68](https://github.com/QuentinRoy/phonearena-scrapper/commit/a89bc68))
+
+
+### Features
+
+* save the phone listings for future scrapping ([ece074f](https://github.com/QuentinRoy/phonearena-scrapper/commit/ece074f))
+
+
+
 <a name="0.4.0"></a>
 # [0.4.0](https://github.com/QuentinRoy/phonearena-scrapper/compare/v0.3.0...v0.4.0) (2018-07-16)
 
