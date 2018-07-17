@@ -19,11 +19,15 @@ const scrapeListingPageAddresses = async page => {
 };
 
 const scrapePhoneAddressFromListingPage = page =>
-  page.$eval('body', body =>
-    Array.from(
-      body.querySelectorAll('#phones .s_listing .s_block_4 h3 > a'),
-    ).map(a => ({ address: a.href, name: a.text })),
-  );
+  page
+    .$eval('body', body =>
+      Array.from(
+        body.querySelectorAll('#phones .s_listing .s_block_4 h3 > a'),
+      ).map(a => ({ address: a.href, name: a.text })),
+    )
+    .then(listing =>
+      listing.map(r => ({ ...r, address: `${r.address}/fullspecs` })),
+    );
 
 module.exports = {
   scrapeListingPageAddresses,

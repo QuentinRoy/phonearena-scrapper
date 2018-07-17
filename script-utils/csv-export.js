@@ -57,8 +57,11 @@ const normalizeDate = date => {
   ).toISOString();
 };
 
+let s;
+
 // Walk through the spec hierarchy and find an item.
 const findScrappingItemByName = (itemList, currentItemName, ...subItemPath) => {
+  if (!itemList) log.debug('wtf', s, currentItemName);
   const item = itemList.find(item_ => item_.name === currentItemName);
   // console.log({ itemList, item, currentItemName, subItemPath });
   if (!item) return undefined;
@@ -96,6 +99,7 @@ const parseDisplayResolution = (displayResolution = '') => {
 const scrappingTransform = new Transform({
   objectMode: true,
   transform(scrapping, encoding, callback) {
+    s = scrapping;
     const findMetaInfoItem = (...args) =>
       findScrappingItemByName(scrapping.metaInfo, ...args);
     const findSpecItem = (...args) =>

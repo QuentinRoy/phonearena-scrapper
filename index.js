@@ -50,6 +50,18 @@ program
     3,
   )
   .option(
+    '--listing  <path>',
+    'The path of file where the address of every phones to scrap are listed',
+  )
+  .option(
+    '--listing-output <path>',
+    'The path of file where the write down the listing of the phones to scrap',
+  )
+  .option(
+    '--listing-only',
+    'Only scrap phone listings, but not the phone themselves',
+  )
+  .option(
     '--no-headless',
     'If the scrapping should happening without showing the browser',
   )
@@ -58,43 +70,28 @@ program
   .option('--no-image-download')
   .parse(process.argv);
 
-const {
-  outputDir,
-  successOnly,
-  update,
-  concurrency,
-  loadingRetry,
-  scrappingRetry,
-  headless,
-  imageDownload,
-} = program;
+// const {
+//   outputDir,
+//   successOnly,
+//   update,
+//   concurrency,
+//   loadingRetry,
+//   scrappingRetry,
+//   headless,
+//   imageDownload,
+//   listing,
+//   listingOutput,
+//   listingOnly,
+// } = program;
 
-log.debug({
-  outputDir,
-  successOnly,
-  update,
-  concurrency,
-  loadingRetry,
-  scrappingRetry,
-  headless,
-  imageDownload,
-});
+const scrappingSpeed = (done, start) => done / (Date.now() - start);
 
-const main = async () => {
-  const browser = await puppeteer.launch({ headless });
-  const pageManager = PageManager(browser, concurrency, {
-    retry: loadingRetry,
-  });
-  await browser.pages().then(pages => pages.forEach(p => pageManager.give(p)));
-  const start = Date.now();
-  const retryT = retry(scrappingRetry);
-
-  let failed = false;
-  let phonePagesDone = 0;
-  let listingPagesDone = 0;
+const scrapPhoneListings = async ({ pageManager, start }, options) => {
+  const retryT = retry(options.scrappingRetry);
   let doneRecently = 0;
-
-  const speed = () => doneRecently / Math.min(TIME_WINDOW, Date.now() - start);
+  let done = 0;
+  const speed = () =>
+    scrappingSpeed(doneRecently, Math.max(start, Date.now() - TIME_WINDOW));
 
   // Get all listing pages.
   const allListingPages = await pageManager.withPage(
@@ -105,22 +102,21 @@ const main = async () => {
 
   log.info(`> Found ${nListings} list pages. Scrapping phones listings...`);
 
-  // Scrape them all!
-  const phoneAddresses = await Promise.all(
+  // Scrap them.
+  const addressGroups = await Promise.all(
     allListingPages.map(
       retryT(() => async addr => {
         const r = await pageManager.withPage(addr, page => {
           log.debug(`> Scrapping listing at ${addr}`);
           return scrapePhoneAddressFromListingPage(page);
         });
-
-        listingPagesDone += 1;
+        done += 1;
         doneRecently += 1;
         setTimeout(() => {
           doneRecently -= 1;
         }, TIME_WINDOW);
         log.info(
-          `${addr} scrapped (${listingPagesDone}/${nListings}, speed: ${Math.round(
+          `${addr} scrapped (${done}/${nListings}, speed: ${Math.round(
             speed() * 60000,
           )}/min, time elapsed: ${moment
             .duration(Date.now() - start)
@@ -130,45 +126,55 @@ const main = async () => {
         return r;
       }),
     ),
-  ).then(addressGroups =>
-    addressGroups.reduce((acc, result) => acc.concat(result), []),
   );
+  return addressGroups
+    .reduce((acc, result) => acc.concat(result), [])
+    .map(({ address }) => address);
+};
 
+// Scrap and every phones in phone addresses and write their data.
+const scrapPhones = async ({ pageManager, start, phoneAddresses }, options) => {
+  let hasFailed = false;
+  let phonePagesDone = 0;
+  let doneRecently = 0;
+  let noUpdatedRecords = 0;
   const n = phoneAddresses.length;
+  const retryT = retry(options.scrappingRetry);
+  const speed = () =>
+    scrappingSpeed(doneRecently, Math.max(start, Date.now() - TIME_WINDOW));
 
-  if (!(await exists(outputDir))) {
-    await mkdir(outputDir);
+  // Create the directory for the phone's data.
+  if (!(await exists(options.outputDir))) {
+    await mkdir(options.outputDir);
   }
 
-  log.info(`> Found ${n} phone pages. Scrapping phones...`);
-
   await Promise.all(
-    phoneAddresses.map(async ({ name, address: originalAddress }) => {
-      const address = `${originalAddress}/fullspecs`;
-      const id = getPhoneId({ name, address });
+    phoneAddresses.map(async address => {
+      const id = getPhoneId({ address });
       try {
-        const outputFile = path.resolve(outputDir, `${id}.json`);
-        if (update !== true && (await exists(outputFile))) {
+        const outputFile = path.resolve(options.outputDir, `${id}.json`);
+        if (options.update !== true && (await exists(outputFile))) {
           let shouldNotUpdate;
-          if (update == null) {
+          if (options.update == null) {
             shouldNotUpdate = true;
           } else {
             const lastScrapDate = JSON.parse(await readFile(outputFile))
               .scrapDate;
-            shouldNotUpdate = moment(lastScrapDate).diff(update) >= 0;
+            shouldNotUpdate = moment(lastScrapDate).diff(options.update) >= 0;
           }
           if (shouldNotUpdate) {
             phonePagesDone += 1;
-            log.debug(`> Not updating ${name}`);
+            noUpdatedRecords += 1;
+            log.debug(`> Not updating ${address}`);
             return;
           }
         }
         const phoneData = await retryT(() =>
           pageManager.withPage(address, async page => {
-            log.debug(`> Scrapping phone "${name}"...`);
+            log.debug(`> Scrapping phone at "${address}"...`);
             try {
               const res = await scrapePhonePage(page);
-              log.debug(`> Done scrapping "${name}"`);
+              log.debug(`> Done scrapping "${res.name}"`);
               return {
                 ...res,
                 address,
@@ -177,7 +183,7 @@ const main = async () => {
                 scrapper: `${scrapperName} v${version}`,
               };
             } catch (e) {
-              log.error(`> Error while scrapping "${name}" at ${address}`);
+              log.error(`> Error while scrapping phone at ${address}`);
               log.error(e);
               await new Promise(resolve => setTimeout(resolve, 5000));
               throw e;
@@ -186,16 +192,16 @@ const main = async () => {
         );
 
         // Download the image.
-        if (imageDownload && phoneData.image) {
+        if (options.imageDownload && phoneData.image) {
           const imageExt = path.extname(/^[^(?|#)]+/.exec(phoneData.image)[0]);
-          log.debug(`> Downloading image for phone "${name}"...`);
+          log.debug(`> Downloading image for phone "${phoneData.name}"...`);
           await download(
             phoneData.image,
             path.resolve(path.dirname(outputFile), `${id}${imageExt}`),
           );
         }
 
-        log.debug(`> Writing "${name}" data...`);
+        log.debug(`> Writing "${phoneData.name}" data...`);
 
         // Write the file.
         await writeFile(outputFile, JSON.stringify(phoneData, null, 2));
@@ -207,27 +213,63 @@ const main = async () => {
         }, TIME_WINDOW);
         const eta = (n - phonePagesDone) / speed();
         log.info(
-          `"${name}" scrapped (${phonePagesDone}/${n}, speed: ${Math.round(
+          `"${
+            phoneData.name
+          }" scrapped (${phonePagesDone}/${n}, speed: ${Math.round(
             speed() * 60000,
           )}/min, time elapsed: ${moment
             .duration(Date.now() - start)
             .humanize()}, ETA: ${moment.duration(eta).humanize()})`,
         );
       } catch (e) {
-        failed = true;
-        log.error(`Failed while scrapping ${name} at ${address}`);
-        if (successOnly) throw e;
+        hasFailed = true;
+        log.error(`Failed while scrapping phone at ${address}`);
+        if (options.successOnly) throw e;
         else log.error(e);
       }
     }),
   );
-
-  await browser.close();
-
-  return failed;
+  log.info(`${noUpdatedRecords} phone scrapping were found and kept as is.`);
+  return hasFailed;
 };
 
-main().then(
+const main = async options => {
+  const browser = await puppeteer.launch({ headless: options.headless });
+  const pageManager = PageManager(browser, options.concurrency, {
+    retry: options.loadingRetry,
+  });
+  await browser.pages().then(pages => pages.forEach(p => pageManager.give(p)));
+  const start = Date.now();
+
+  // Scrape phone addresses or read them from the listing file.
+  const phoneAddresses = options.listing
+    ? await readFile(options.listing).then(buffer =>
+        buffer.toString().split('\n'),
+      )
+    : await scrapPhoneListings({ pageManager, start }, options);
+
+  if (options.listingOutput) {
+    await writeFile(options.listingOutput, phoneAddresses.join('\n'));
+  }
+
+  log.debug({ listingOnly: options.listingOnly });
+
+  // If only listings should be scraped, return false to indicate that the
+  // operation was successful.
+  if (options.listingOnly) return false;
+
+  // Scape the phones and write their data.
+  log.info(`> Found ${phoneAddresses.length} phone pages. Scrapping phones...`);
+  const hasFailed = await scrapPhones(
+    { phoneAddresses, pageManager, start },
+    options,
+  );
+
+  await browser.close();
+  return hasFailed;
+};
+
+main(program).then(
   failed => {
     process.exit(failed ? 1 : 0);
   },
