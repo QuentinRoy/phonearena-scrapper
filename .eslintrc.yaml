@@ -19,3 +19,11 @@ overrides:
       import/no-extraneous-dependencies:
         - error
         - devDependencies: true
+  - files:
+      - "visu/*"
+      - "**/*.test.js"
+    env:
+      browser: true
+    rules:
+      func-names: 0
+      import/extensions: ["error", "always"]

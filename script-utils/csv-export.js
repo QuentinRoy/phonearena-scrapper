@@ -74,16 +74,16 @@ const findScrappingItemByName = (itemList, currentItemName, ...subItemPath) => {
 const parseDimension = (dimensionsStr = '') => {
   // Some dimensions have a special 'x' character. Some use ',' instead of '.'.
   const dimMatch =
-    /\(\s*(\d+(?:(?:\.|,)\d+)?)\s*(?:x|х)\s*(\d+(?:(?:\.|,)\d+)?)\s*(?:x|х)\s*(\d+(?:(?:\.|,)\d+)?)\s*mm\s*\)/.exec(
+    /\(\s*((?:\d|\.)+)\s*(?:x|х)\s*((?:\d|\.)+)\s*(?:x|х)\s*((?:\d|\.)+)\s*(?:mm\s*)?\)/i.exec(
       dimensionsStr,
     ) || [];
   const [parsedHeight, parsedWidth, parsedThickness] = dimMatch
     .slice(1, 4)
-    .map(x => +x.replace(',', '.'));
+    .map(x => parseFloat(x.replace(',', '.')));
   return { parsedHeight, parsedWidth, parsedThickness };
 };
 
-const parseWeight = weightStr =>
+const parseWeight = (weightStr = '') =>
   (/\(\s*(\d+((\.|,)\d+)?)\s*g\s*\)/.exec(weightStr) || [])
     .slice(1, 2)
     .map(x => +x.replace(',', '.'))[0];
@@ -95,6 +95,9 @@ const parseDisplayResolution = (displayResolution = '') => {
     .map(x => +x.replace(',', '.'));
   return { parsedDisplayPixelWidth, parsedDisplayPixelHeight };
 };
+
+const parseOS = (os = '') =>
+  (/^\s*((?:[a-z0-9\-_\s])*[a-z0-9])/i.exec(os) || [])[1];
 
 const scrappingTransform = new Transform({
   objectMode: true,
@@ -113,15 +116,21 @@ const scrappingTransform = new Transform({
     const dimensions = findSpecItem('Design', 'Dimensions');
     const weight = findSpecItem('Design', 'Weight');
     const formFactor = findSpecItem('Design', 'Form factor');
-    const os = findSpecItem('Design', 'OS');
+    const OS = findSpecItem('Design', 'OS');
+    const deviceType = findSpecItem('Design', 'Device type');
     const displaySize = findSpecItem('Display', 'Physical size');
     const displayResolution = findSpecItem('Display', 'Resolution');
     const screenToBodyRatio = findSpecItem('Display', 'Screen-to-body ratio');
+    const displayTouch = findSpecItem('Display', 'Touchscreen');
+    const cellularData = findSpecItem('Cellular', 'Data');
+    const cellularGSM = findSpecItem('Cellular', 'GSM');
 
     this.push({
+      id: scrapping.scrapId,
       name: scrapping.name,
       brand: scrapping.brand,
-      type: scrapping.type,
+      deviceType,
+      address: scrapping.address,
       releaseDate,
       parsedReleaseDate: normalizeDate(releaseDate),
       marketStatus,
@@ -132,7 +141,17 @@ const scrappingTransform = new Transform({
       weight,
       parsedWeight: parseWeight(weight),
       formFactor,
-      os,
+      OS,
+      parsedOS: parseOS(OS),
+      cellularData,
+      cellularGSM,
+      displayTouch,
+      parsedMultiTouch: displayTouch
+        ? displayTouch
+            .toLowerCase()
+            .replace('-', '')
+            .includes('multitouch')
+        : false,
       displaySize,
       parsedDisplayMMDiagonal:
         displaySize && inchesToMM(parseInt(displaySize, 10)),
@@ -142,6 +161,8 @@ const scrappingTransform = new Transform({
       parsedScreenToBodyRatio:
         screenToBodyRatio && parseFloat(screenToBodyRatio) / 100,
       scrappedPage: scrapping.address,
+      sprapDate: scrapping.scrapDate,
+      scrapper: scrapping.scrapper,
     });
     callback();
   },

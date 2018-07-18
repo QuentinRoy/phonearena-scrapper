@@ -1,0 +1,23 @@
+{
+  "name": "visu",
+  "homepage": "https://github.com/QuentinRoy/phonearena-scrapper",
+  "authors": [
+    "Quentin Roy <quentin@quentinroy.fr>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "d3": "^5.5.0",
+    "moment": "^2.22.2",
+    "nouislider": "noUiSlider#^11.1.0",
+    "lodash": "^4.17.10"
+  }
+}

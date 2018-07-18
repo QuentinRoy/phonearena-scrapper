@@ -7,6 +7,7 @@
   "author": "Quentin Roy <quentin@quentinroy.fr>",
   "private": true,
   "dependencies": {
+    "bower": "^1.8.4",
     "camelcase": "^5.0.0",
     "commander": "^2.16.0",
     "csv-stringify": "^3.1.1",
@@ -15,6 +16,7 @@
     "moment": "^2.22.2",
     "puppeteer": "^1.5.0",
     "sanitize-filename": "^1.6.1",
+    "serve": "^9.2.0",
     "standard-version": "^4.4.0"
   },
   "devDependencies": {
@@ -27,6 +29,9 @@
   },
   "scripts": {
     "start": "node index.js",
-    "release": "standard-version"
+    "release": "standard-version",
+    "export-for-visu": "node script-utils/csv-export.js out > visu/phones.csv",
+    "install-visu": "yarn export-for-visu && cd visu && bower install",
+    "serve": "serve visu"
   }
 }

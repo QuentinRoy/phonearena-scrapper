@@ -13,7 +13,7 @@ yarn-error.log*
 # Dependency directories
 /node_modules
 /jspm_packages
-/bower_components
+bower_components
 
 # Yarn Integrity file
 .yarn-integrity

@@ -1,0 +1,39 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+header, main {
+  margin: 5mm;
+}
+
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: .2em .4em;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+  transform: translate(.5em, 0);
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:before {
+  box-sizing: border-box;
+  display: inline;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: left;
+  left: -.75em;
+  transform: scale(0.5) rotate(90deg);
+}
+
+#slider-container {
+  margin-bottom: 4em;
+}
+
+#slider .noUi-connect {
+  background: steelblue;
+}
