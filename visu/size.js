@@ -183,12 +183,12 @@ const makeHistogram = initOptions => {
 
     xAxisGroup.call(xAxis);
 
-    const sortedValues = data.map(getter).sort();
+    const sortedValues = data.sort((a, b) => getter(a) - getter(b));
     // Make percentile plot now.
-    const lowerPercentileValue = d3.quantile(sortedValues, lowerPercentileP);
-    const upperPercentileValue = d3.quantile(sortedValues, upperPercentileP);
-    const medianValue = d3.quantile(sortedValues, .5);
     
+    const lowerPercentileValue = d3.quantile(sortedValues, lowerPercentileP, getter);
+    const upperPercentileValue = d3.quantile(sortedValues, upperPercentileP, getter);
+    const medianValue = d3.quantile(sortedValues, .5, getter);
     percentilePlotGroup
       .attr(
         'transform',
