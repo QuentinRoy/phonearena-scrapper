@@ -31,7 +31,7 @@
     "start": "node index.js",
     "release": "standard-version",
     "export-for-visu": "node script-utils/csv-export.js out > visu/phones.csv",
-    "install-visu": "yarn export-for-visu && cd visu && bower install",
+    "install-visu": "cd visu && bower install",
     "serve": "serve visu"
   }
 }
