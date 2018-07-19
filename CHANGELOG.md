@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.6.0"></a>
+# [0.6.0](https://github.com/QuentinRoy/phonearena-scrapper/compare/v0.5.0...v0.6.0) (2018-07-19)
+
+
+### Features
+
+* add a loading wheel in the size visu ([90f416e](https://github.com/QuentinRoy/phonearena-scrapper/commit/90f416e))
+* add phone size visu ([d2264b5](https://github.com/QuentinRoy/phonearena-scrapper/commit/d2264b5))
+* improve sive visu ([e91271f](https://github.com/QuentinRoy/phonearena-scrapper/commit/e91271f))
+
+
+
 <a name="0.5.0"></a>
 # [0.5.0](https://github.com/QuentinRoy/phonearena-scrapper/compare/v0.4.0...v0.5.0) (2018-07-17)
 
