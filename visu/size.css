@@ -61,3 +61,29 @@ header, main, footer {
 .histogram h2 {
   padding-left: 1em;
 }
+
+.loader {
+  position: absolute;
+  top: 50%;
+  left: calc(50% - 60px);
+  display: none;
+  border: 16px solid #f3f3f3; /* Light grey */
+  border-top: 16px solid steelblue; /* Blue */
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 1s linear infinite;
+}
+
+.loading .loader {
+  display: inherit;
+}
+
+.loading .histograms, .loading footer, .loading .message {
+  visibility: hidden;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
