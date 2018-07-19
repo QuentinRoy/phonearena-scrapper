@@ -345,7 +345,6 @@ const main = async options => {
 
   updateLegend(sliderValues, filteredData.length);
 
-  debugger;
   document.body.classList.remove('loading');
 
   slider.on(
