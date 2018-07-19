@@ -48,9 +48,29 @@ const makeHistogram = initOptions => {
     .style('font-size', 10);
 
   // Init the percentile plot.
-  const percentileBox = percentilePlotGroup
+  const quartileBox = percentilePlotGroup
     .append('rect')
     .attr('class', 'percentileBox')
+    .style('stroke', 'black')
+    .style('stroke-width', 1);
+  const lowerPercentileLine = percentilePlotGroup
+    .append('line')
+    .attr('class', 'lower-percentile-line')
+    .style('stroke', 'black')
+    .style('stroke-width', 1);
+  const upperPercentileLine = percentilePlotGroup
+    .append('line')
+    .attr('class', 'upper-percentile-line')
+    .style('stroke', 'black')
+    .style('stroke-width', 1);
+  const leftPercentileJoin = percentilePlotGroup
+    .append('line')
+    .attr('class', 'left-percentile-join')
+    .style('stroke', 'black')
+    .style('stroke-width', 1);
+  const rightPercentileJoin = percentilePlotGroup
+    .append('line')
+    .attr('class', 'right-percentile-join')
     .style('stroke', 'black')
     .style('stroke-width', 1);
   const medianLine = percentilePlotGroup
@@ -58,6 +78,16 @@ const makeHistogram = initOptions => {
     .attr('class', 'median')
     .style('stroke', 'black')
     .style('stroke-width', 2);
+  const lowerQuartileLabel = percentilePlotGroup
+    .append('text')
+    .classed('lower-quartile-label', true)
+    .attr('alignment-baseline', 'hanging')
+    .attr('text-anchor', 'middle');
+  const upperQuartileLabel = percentilePlotGroup
+    .append('text')
+    .classed('upper-quartile-label', true)
+    .attr('alignment-baseline', 'hanging')
+    .attr('text-anchor', 'middle');
   const lowerPercentileLabel = percentilePlotGroup
     .append('text')
     .classed('lower-percentile-label', true)
@@ -185,10 +215,12 @@ const makeHistogram = initOptions => {
 
     const sortedValues = data.sort((a, b) => getter(a) - getter(b));
     // Make percentile plot now.
-    
     const lowerPercentileValue = d3.quantile(sortedValues, lowerPercentileP, getter);
     const upperPercentileValue = d3.quantile(sortedValues, upperPercentileP, getter);
+    const lowerQuartileValue = d3.quantile(sortedValues, .25, getter);
+    const upperQuartileValue = d3.quantile(sortedValues, .75, getter);
     const medianValue = d3.quantile(sortedValues, .5, getter);
+
     percentilePlotGroup
       .attr(
         'transform',
@@ -196,9 +228,9 @@ const makeHistogram = initOptions => {
           height - margin.bottom - percentilePlotHeight
         })`
       );
-    percentileBox
-      .attr('x', x(lowerPercentileValue))
-      .attr('width', x(upperPercentileValue) - x(lowerPercentileValue))
+    quartileBox
+      .attr('x', x(lowerQuartileValue))
+      .attr('width', x(upperQuartileValue) - x(lowerQuartileValue))
       .attr('y', 0)
       .attr('height', percentilePlotHeight)
       .style('fill', percentileBoxColor);
@@ -207,21 +239,51 @@ const makeHistogram = initOptions => {
       .attr('x2', x(medianValue))
       .attr('y1', 0)
       .attr('y2', percentilePlotHeight);
-    lowerPercentileLabel
-      .attr('x', x(lowerPercentileValue))
+    lowerQuartileLabel
+      .attr('x', x(lowerQuartileValue))
       .attr('y', percentilePlotHeight + 2)
-      .text(labelFormat(lowerPercentileValue))
+      .text(labelFormat(lowerQuartileValue))
       .attr('fill', percentileLabelColor);
-    upperPercentileLabel
-      .attr('x', x(upperPercentileValue))
+    upperQuartileLabel
+      .attr('x', x(upperQuartileValue))
       .attr('y', percentilePlotHeight + 2)
-      .text(labelFormat(upperPercentileValue))
+      .text(labelFormat(upperQuartileValue))
       .attr('fill', percentileLabelColor);
     medianLabel
       .attr('x', x(medianValue))
       .attr('y', percentilePlotHeight + 2)
       .text(labelFormat(medianValue))
       .attr('fill', percentileLabelColor);
+    lowerPercentileLine
+      .attr('x1', x(lowerPercentileValue))
+      .attr('x2', x(lowerPercentileValue))
+      .attr('y1', 0)
+      .attr('y2', percentilePlotHeight);
+    lowerPercentileLabel
+      .attr('x', x(lowerPercentileValue))
+      .attr('y', percentilePlotHeight + 2)
+      .text(labelFormat(lowerPercentileValue))
+      .attr('fill', percentileLabelColor);
+    upperPercentileLine
+      .attr('x1', x(upperPercentileValue))
+      .attr('x2', x(upperPercentileValue))
+      .attr('y1', 0)
+      .attr('y2', percentilePlotHeight);
+    upperPercentileLabel
+      .attr('x', x(upperPercentileValue))
+      .attr('y', percentilePlotHeight + 2)
+      .text(labelFormat(upperPercentileValue))
+      .attr('fill', percentileLabelColor);
+    leftPercentileJoin
+      .attr('x1', x(lowerPercentileValue))
+      .attr('x2', x(lowerQuartileValue))
+      .attr('y1', percentilePlotHeight / 2)
+      .attr('y2', percentilePlotHeight / 2);
+    rightPercentileJoin
+      .attr('x1', x(upperPercentileValue))
+      .attr('x2', x(upperQuartileValue))
+      .attr('y1', percentilePlotHeight / 2)
+      .attr('y2', percentilePlotHeight / 2);
   }
   update(initOptions);
   return update;
