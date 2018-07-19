@@ -3,18 +3,20 @@
   padding: 0;
 }
 
-header, main, footer {
+header,
+main,
+footer {
   margin: 5mm;
 }
 
 .d3-tip {
   line-height: 1;
-  padding: .2em .4em;
+  padding: 0.2em 0.4em;
   background: rgba(0, 0, 0, 0.8);
   color: #fff;
   border-radius: 2px;
-  transform: translate(.8em, 0);
-  font-size: .75em;
+  transform: translate(0.8em, 0);
+  font-size: 0.75em;
 }
 
 .d3-tip h3 {
@@ -22,19 +24,18 @@ header, main, footer {
   font-size: 1.25em;
 }
 
-
 /* Creates a small triangle extender for the tooltip */
 .d3-tip:before {
   box-sizing: border-box;
   display: inline;
   line-height: 1;
   color: rgba(0, 0, 0, 0.8);
-  content: "\25BC";
+  content: '\25BC';
   position: absolute;
   font-size: 1.5em;
   text-align: left;
-  left: -.72em;
-  top: .45em;
+  left: -0.72em;
+  top: 0.45em;
   transform: scale(0.5) rotate(90deg);
 }
 
@@ -53,7 +54,7 @@ header, main, footer {
 .histogram {
   text-align: left;
   display: inline-block;
-  margin: .2em 2em;
+  margin: 0.2em 2em;
   border-radius: 1em;
   padding: 1em;
 }
@@ -79,11 +80,48 @@ header, main, footer {
   display: inherit;
 }
 
-.loading .histograms, .loading footer, .loading .message {
+.loading .histograms,
+.loading footer,
+.loading .message {
   visibility: hidden;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+#brand-checkboxes-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+#brand-checkboxes {
+  columns: 10em 5;
+}
+
+#brands-area {
+  text-align: center;
+}
+
+#brands-area h2 {
+  margin: 0.5em;
+}
+
+.brand-checkbox-wrapper {
+  text-align: left;
+}
+
+#brands-control {
+  margin: 0.5em;
+}
+
+
+#brands-control p {
+  display: inline-block;
+  width: 10em;
 }

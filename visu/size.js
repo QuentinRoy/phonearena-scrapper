@@ -10,7 +10,8 @@ const CONFIG = {
   widthElement: '#histogram-width',
   ratioHeightWidthElement: '#histogram-ratio-height-width',
   maxPhoneAge: 3,
-  includedManufacturers: 'all', // ['apple', 'samsung', 'huawei', 'xiaomi', 'oppo'],
+  includedManufacturers: 'all',
+  top5Manufacturers: ['apple', 'samsung', 'huawei', 'xiaomi', 'oppo'],
   barColor: 'steelblue',
   phoneHoverColor: '#84B2E0',
   barLabelColor: '#326FAB',
@@ -18,12 +19,15 @@ const CONFIG = {
   percentileBoxColor: '#DEEEFF',
   lowerPercentile: 0.05,
   upperPercentile: 0.95,
+  brandCheckBoxesElement: '#brand-checkboxes',
+  selectAllBrandsElement: '#select-all-brand',
+  selectTop5BrandsElement: '#select-top-5-brands',
 };
 
 const toDecimalYearFormat = momentDate =>
   momentDate.year() + momentDate.month() / 12;
 
-const makeHistogram = initOptions => {
+const mountHistogram = initOptions => {
   const { svg } = initOptions;
   const width = +svg.attr('width');
   const height = +svg.attr('height');
@@ -213,7 +217,7 @@ const makeHistogram = initOptions => {
 
     xAxisGroup.call(xAxis);
 
-    const sortedValues = data.sort((a, b) => getter(a) - getter(b));
+    const sortedValues = Array.from(data).sort((a, b) => getter(a) - getter(b));
     // Make percentile plot now.
     const lowerPercentileValue = d3.quantile(sortedValues, lowerPercentileP, getter);
     const upperPercentileValue = d3.quantile(sortedValues, upperPercentileP, getter);
@@ -289,6 +293,31 @@ const makeHistogram = initOptions => {
   return update;
 };
 
+const mountBrandCheckBoxes = ({ brands, div, onChange }) => {
+  const onCheckboxClicked = () => {
+    onChange();
+  };
+  brands.forEach(({ name, included }) => {
+    const checkBoxDiv = document.createElement('div');
+    const checkboxId = `${name.replace(' ', '_').replace('"', '')}-checkbox`;
+    checkBoxDiv.classList.add('brand-checkbox-wrapper');
+    div.appendChild(checkBoxDiv);
+    checkBoxDiv.innerHTML = `
+      <input type="checkbox" class="brand-checkbox" id="${checkboxId}" data-brand="${name}" checked="${included}"></input>
+      <label for=${checkboxId}>${name}</label>
+    `;
+    checkBoxDiv
+      .querySelector('.brand-checkbox')
+      .addEventListener('change', onCheckboxClicked, { passive: true });
+  });
+  return {
+    getSelectedBrands: () =>
+      Array.from(div.querySelectorAll('.brand-checkbox:checked')).map(
+        c => c.dataset.brand,
+      ),
+  };
+};
+
 const main = async options => {
   const {
     phoneDataAddress,
@@ -296,8 +325,11 @@ const main = async options => {
     heightElement,
     widthElement,
     ratioHeightWidthElement,
-    includedManufacturers,
+    brandCheckBoxesElement,
+    selectAllBrandsElement,
+    selectTop5BrandsElement,
   } = options;
+  const top5Manufacturers = Array.from(options.top5Manufacturers).sort();
   const rawData = await d3.dsv(',', phoneDataAddress);
 
   const data = _.sortBy(
@@ -307,9 +339,7 @@ const main = async options => {
           d.parsedReleaseDate &&
           d.dimensions &&
           d.deviceType &&
-          d.deviceType.toLowerCase().replace(' ', '') === 'smartphone' &&
-          (includedManufacturers === 'all' ||
-            includedManufacturers.includes(d.brand.toLowerCase())),
+          d.deviceType.toLowerCase().replace(' ', '') === 'smartphone',
       )
       .map(d => {
         const momentReleaseDate = moment(d.parsedReleaseDate);
@@ -357,22 +387,29 @@ const main = async options => {
       d.momentReleaseDate < moment(sliderValues.max),
   );
 
+  const allBrands = Array.from(new Set(filteredData.map(d => d.brand)));
+  let includedManufacturers = Array.from(
+    options.includedManufacturers === 'all'
+      ? allBrands
+      : options.includedManufacturers,
+  );
+
   const histograms = {
-    diagonal: makeHistogram({
+    diagonal: mountHistogram({
       ...options,
       data: filteredData,
       svg: d3.select(diagonalElement),
       getter: d => d.diagonal,
       labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
     }),
-    width: makeHistogram({
+    width: mountHistogram({
       ...options,
       data: filteredData,
       svg: d3.select(widthElement),
       getter: d => +d.parsedWidth,
       labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
     }),
-    height: makeHistogram({
+    height: mountHistogram({
       ...options,
       data: filteredData,
       svg: d3.select(heightElement),
@@ -380,7 +417,7 @@ const main = async options => {
       labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
       unit: 'm',
     }),
-    ratioHeightWidth: makeHistogram({
+    ratioHeightWidth: mountHistogram({
       ...options,
       data: filteredData,
       svg: d3.select(ratioHeightWidthElement),
@@ -389,10 +426,9 @@ const main = async options => {
     }),
   };
 
-  let lastSliderValues = sliderValues;
-
   const titleDates = [...document.querySelectorAll('.date-range')];
   const phoneCounts = [...document.querySelectorAll('.phone-count')];
+
   const updateLegend = (newSliderValues, phoneCount) => {
     const min = moment(newSliderValues.min);
     const max = moment(newSliderValues.max);
@@ -405,25 +441,90 @@ const main = async options => {
     });
   };
 
+  let lastSliderValues = sliderValues;
+  let lastIncludedManufacturers = includedManufacturers;
+
+  const updateCharts = _.throttle(() => {
+    const newSliderValues = getSliderValues();
+    if (
+      _.isEqual(newSliderValues, lastSliderValues) &&
+      lastIncludedManufacturers === includedManufacturers
+    )
+      return;
+    lastSliderValues = newSliderValues;
+    lastIncludedManufacturers = includedManufacturers;
+    const newData = data.filter(
+      d =>
+        d.momentReleaseDate > moment(newSliderValues.min) &&
+        d.momentReleaseDate < moment(newSliderValues.max) &&
+        includedManufacturers.includes(d.brand.toLowerCase()),
+    );
+    updateLegend(newSliderValues, newData.length);
+    Object.values(histograms).forEach(histo => histo({ data: newData }));
+  }, 100);
+
+  slider.on('update', updateCharts);
+
+  const selectAllCheckbox = document.querySelector(selectAllBrandsElement);
+  const selectTop5BrandsCheckbox = document.querySelector(
+    selectTop5BrandsElement,
+  );
+  const onCheckBoxesChange = brands => {
+    includedManufacturers = brands.map(b => b.toLowerCase()).sort();
+    Array.from(
+      document.querySelectorAll(`${brandCheckBoxesElement} .brand-checkbox`),
+    ).forEach(c => {
+      c.checked = includedManufacturers.includes(c.dataset.brand.toLowerCase()); // eslint-disable-line no-param-reassign
+    });
+    selectAllCheckbox.checked = brands.length === allBrands.length;
+    selectTop5BrandsCheckbox.checked = _.isEqual(
+      includedManufacturers,
+      top5Manufacturers,
+    );
+    updateCharts();
+  };
+
+  const { getSelectedBrands } = mountBrandCheckBoxes({
+    brands: _.sortBy(allBrands, b => b.toLowerCase()).map(b => ({
+      name: b,
+      included: includedManufacturers.includes(b.toLowerCase()),
+    })),
+    div: document.querySelector(brandCheckBoxesElement),
+    onChange() {
+      onCheckBoxesChange(getSelectedBrands());
+    },
+  });
+
+  selectAllCheckbox.addEventListener(
+    'change',
+    () => {
+      onCheckBoxesChange(selectAllCheckbox.checked ? allBrands : []);
+    },
+    { passive: true },
+  );
+
+  selectTop5BrandsCheckbox.addEventListener(
+    'change',
+    () => {
+      if (selectTop5BrandsCheckbox.checked) {
+        Array.from(
+          document.querySelectorAll(
+            `${brandCheckBoxesElement} .brand-checkbox`,
+          ),
+        ).forEach(c => {
+          // eslint-disable-next-line no-param-reassign
+          c.checked = top5Manufacturers.includes(c.dataset.brand.toLowerCase());
+        });
+        onCheckBoxesChange(top5Manufacturers);
+      }
+    },
+    { passive: true },
+  );
+
   updateLegend(sliderValues, filteredData.length);
+  onCheckBoxesChange(includedManufacturers);
 
   document.body.classList.remove('loading');
-
-  slider.on(
-    'update',
-    _.throttle(() => {
-      const newSliderValues = getSliderValues();
-      if (_.isEqual(newSliderValues, lastSliderValues)) return;
-      lastSliderValues = newSliderValues;
-      const newData = data.filter(
-        d =>
-          d.momentReleaseDate > moment(newSliderValues.min) &&
-          d.momentReleaseDate < moment(newSliderValues.max),
-      );
-      updateLegend(newSliderValues, newData.length);
-      Object.values(histograms).forEach(histo => histo({ data: newData }));
-    }, 100),
-  );
 };
 
 main(CONFIG).catch(console.error);
