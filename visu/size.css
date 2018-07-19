@@ -3,19 +3,25 @@
   padding: 0;
 }
 
-header, main {
+header, main, footer {
   margin: 5mm;
 }
 
 .d3-tip {
   line-height: 1;
-  font-weight: bold;
   padding: .2em .4em;
   background: rgba(0, 0, 0, 0.8);
   color: #fff;
   border-radius: 2px;
-  transform: translate(.5em, 0);
+  transform: translate(.8em, 0);
+  font-size: .75em;
 }
+
+.d3-tip h3 {
+  font-weight: bold;
+  font-size: 1.25em;
+}
+
 
 /* Creates a small triangle extender for the tooltip */
 .d3-tip:before {
@@ -25,15 +31,33 @@ header, main {
   color: rgba(0, 0, 0, 0.8);
   content: "\25BC";
   position: absolute;
+  font-size: 1.5em;
   text-align: left;
-  left: -.75em;
+  left: -.72em;
+  top: .45em;
   transform: scale(0.5) rotate(90deg);
 }
 
 #slider-container {
-  margin-bottom: 4em;
+  margin: 1em 0;
 }
 
 #slider .noUi-connect {
   background: steelblue;
+}
+
+.histograms {
+  text-align: center;
+}
+
+.histogram {
+  text-align: left;
+  display: inline-block;
+  margin: .2em 2em;
+  border-radius: 1em;
+  padding: 1em;
+}
+
+.histogram h2 {
+  padding-left: 1em;
 }

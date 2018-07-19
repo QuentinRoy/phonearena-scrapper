@@ -2,12 +2,22 @@
 
 const CONFIG = {
   phoneDataAddress: './phones.csv',
-  margin: { top: 20, right: 20, bottom: 30, left: 40 },
+  margin: { top: 20, right: 20, bottom: 20, left: 20 },
+  percentilePlotHeight: 8,
+  plotsMargin: 30,
   diagonalElement: '#histogram-diagonal',
   heightElement: '#histogram-height',
   widthElement: '#histogram-width',
+  ratioHeightWidthElement: '#histogram-ratio-height-width',
   maxPhoneAge: 3,
   includedManufacturers: 'all', // ['apple', 'samsung', 'huawei', 'xiaomi', 'oppo'],
+  barColor: 'steelblue',
+  phoneHoverColor: '#84B2E0',
+  barLabelColor: '#326FAB',
+  percentileLabelColor: 'black',
+  percentileBoxColor: '#DEEEFF',
+  lowerPercentile: 0.05,
+  upperPercentile: 0.95,
 };
 
 const toDecimalYearFormat = momentDate =>
@@ -18,21 +28,70 @@ const makeHistogram = initOptions => {
   const width = +svg.attr('width');
   const height = +svg.attr('height');
 
-  const barGroup = svg.append('g').attr('class', 'bars');
-  const xAxisElement = svg.append('g');
-  const yAxisNode = svg.append('g');
-
   const tip = d3
     .tip()
     .attr('class', 'd3-tip')
-    .html(d => `${d.brand} ${d.name}`)
+    .html(
+      d => `
+        <h3>${d.brand} ${d.name}</h3>
+        <p>${d.parsedWidth} x ${d.parsedHeight} x ${d.parsedThickness}mm</p>
+      `,
+    )
     .direction('e');
-
   svg.call(tip);
 
+  const barGroup = svg.append('g').attr('class', 'bars');
+  const xAxisGroup = svg.append('g').attr('class', 'x-axis');
+  const percentilePlotGroup = svg
+    .append('g')
+    .attr('class', 'precentile')
+    .style('font-size', 10);
+
+  // Init the percentile plot.
+  const percentileBox = percentilePlotGroup
+    .append('rect')
+    .attr('class', 'percentileBox')
+    .style('stroke', 'black')
+    .style('stroke-width', 1);
+  const medianLine = percentilePlotGroup
+    .append('line')
+    .attr('class', 'median')
+    .style('stroke', 'black')
+    .style('stroke-width', 2);
+  const lowerPercentileLabel = percentilePlotGroup
+    .append('text')
+    .classed('lower-percentile-label', true)
+    .attr('alignment-baseline', 'hanging')
+    .attr('text-anchor', 'middle');
+  const upperPercentileLabel = percentilePlotGroup
+    .append('text')
+    .classed('upper-percentile-label', true)
+    .attr('alignment-baseline', 'hanging')
+    .attr('text-anchor', 'middle');
+  const medianLabel = percentilePlotGroup
+    .append('text')
+    .classed('median-label', true)
+    .attr('alignment-baseline', 'hanging')
+    .attr('text-anchor', 'middle');
+
   // prettier-ignore
-  const update = (newOptions) => {
-    const { data, margin, getter } = { ...initOptions, ...newOptions }
+  const update = newOptions => {
+    const {
+      data,
+      margin,
+      getter,
+      barColor,
+      phoneHoverColor,
+      barLabelColor,
+      percentilePlotHeight,
+      percentileLabelColor,
+      plotsMargin,
+      percentileBoxColor,
+      lowerPercentile: lowerPercentileP,
+      upperPercentile: upperPercentileP,
+      labelFormat,
+    } = { ...initOptions, ...newOptions }
+
     const x = d3.scaleLinear()
       .domain(d3.extent(data, getter)).nice()
       .range([margin.left, width - margin.right]);
@@ -44,20 +103,23 @@ const makeHistogram = initOptions => {
 
     const y = d3.scaleLinear()
       .domain([0, d3.max(bins, d => d.length)]).nice()
-      .range([height - margin.bottom, margin.top]);
+      .range([
+        height - margin.bottom - percentilePlotHeight - plotsMargin,
+        margin.top
+      ]);
 
-      const xAxis = g =>
-        g.attr('transform', `translate(0,${height - margin.bottom})`).call(
-          d3
-            .axisBottom(x)
-            .tickSizeOuter(0)
-            .tickFormat(d => `${d3.format('.3s')(d / 1000)}m`),
-        );
-
-    const yAxis = g => g
-        .attr('transform', `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y))
-        .call(g_ => g_.select('.domain').remove());
+    const xAxis = g =>
+      g.attr(
+        'transform',
+        `translate(0,${
+          height - margin.bottom - percentilePlotHeight - plotsMargin
+        })`
+      ).call(
+        d3
+          .axisBottom(x)
+          .tickSizeOuter(0)
+          .tickFormat(labelFormat),
+      );
 
     const bars = barGroup.selectAll('.bar')
         .data(bins, d => `${d.x0}-${d.x1}`);
@@ -70,13 +132,26 @@ const makeHistogram = initOptions => {
     barsEnter
       .append('rect')
         .attr('class', 'area')
-        .attr('fill', 'steelblue');
+        .attr('fill', barColor);
+
+    barsEnter
+      .append('text')
+        .attr('class', 'label-count')
+        .attr('text-anchor', 'middle')
+        .attr('y', -2)
+        .style('font-size', 10)
+        .style('fill', barLabelColor);
       
-    barsEnter.merge(bars)
-        .attr('transform', d => `translate(${x(d.x0) + 1}, ${y(d.length)})`)
+    const barsEnterUpdate = barsEnter.merge(bars)
+        .attr('transform', d => `translate(${x(d.x0) + 1}, ${y(d.length)})`);
+    barsEnterUpdate    
       .select('.area')
         .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
         .attr('height', d => y(0) - y(d.length));
+    barsEnterUpdate
+      .select('.label-count')
+        .text(d => d.length > 0 ? d.length : '')
+        .attr('x', d => Math.max(0, x(d.x1) - x(d.x0) - 1) / 2)
 
     const phones = barsEnter.merge(bars).selectAll('.phone')
         .data(dParent => dParent.map(d => ({
@@ -90,7 +165,7 @@ const makeHistogram = initOptions => {
         .attr('xlink:href', d => d.address);
     phonesEnter
       .append('rect')
-        .attr('fill', '#84B2E0')
+        .attr('fill', phoneHoverColor)
         .style('opacity', 0)
         .style('cursor', 'pointer')
         .on('mouseover', function (...args) {
@@ -106,21 +181,61 @@ const makeHistogram = initOptions => {
         .attr('y', (d, i) => y(0) - y(i))
         .attr('width', d => d.width);
 
-    xAxisElement.call(xAxis);
-    yAxisNode.call(yAxis);
+    xAxisGroup.call(xAxis);
+
+    const sortedValues = data.map(getter).sort();
+    // Make percentile plot now.
+    const lowerPercentileValue = d3.quantile(sortedValues, lowerPercentileP);
+    const upperPercentileValue = d3.quantile(sortedValues, upperPercentileP);
+    const medianValue = d3.quantile(sortedValues, .5);
+    
+    percentilePlotGroup
+      .attr(
+        'transform',
+        `translate(0,${
+          height - margin.bottom - percentilePlotHeight
+        })`
+      );
+    percentileBox
+      .attr('x', x(lowerPercentileValue))
+      .attr('width', x(upperPercentileValue) - x(lowerPercentileValue))
+      .attr('y', 0)
+      .attr('height', percentilePlotHeight)
+      .style('fill', percentileBoxColor);
+    medianLine
+      .attr('x1', x(medianValue))
+      .attr('x2', x(medianValue))
+      .attr('y1', 0)
+      .attr('y2', percentilePlotHeight);
+    lowerPercentileLabel
+      .attr('x', x(lowerPercentileValue))
+      .attr('y', percentilePlotHeight + 2)
+      .text(labelFormat(lowerPercentileValue))
+      .attr('fill', percentileLabelColor);
+    upperPercentileLabel
+      .attr('x', x(upperPercentileValue))
+      .attr('y', percentilePlotHeight + 2)
+      .text(labelFormat(upperPercentileValue))
+      .attr('fill', percentileLabelColor);
+    medianLabel
+      .attr('x', x(medianValue))
+      .attr('y', percentilePlotHeight + 2)
+      .text(labelFormat(medianValue))
+      .attr('fill', percentileLabelColor);
   }
   update(initOptions);
   return update;
 };
 
-const main = async ({
-  margin,
-  phoneDataAddress,
-  diagonalElement,
-  heightElement,
-  widthElement,
-  includedManufacturers,
-}) => {
+const main = async options => {
+  const {
+    phoneDataAddress,
+    diagonalElement,
+    heightElement,
+    widthElement,
+    ratioHeightWidthElement,
+    includedManufacturers,
+  } = options;
   const rawData = await d3.dsv(',', phoneDataAddress);
 
   const data = _.sortBy(
@@ -182,51 +297,66 @@ const main = async ({
 
   const histograms = {
     diagonal: makeHistogram({
+      ...options,
       data: filteredData,
-      margin,
       svg: d3.select(diagonalElement),
       getter: d => d.diagonal,
+      labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
     }),
     width: makeHistogram({
+      ...options,
       data: filteredData,
-      margin,
       svg: d3.select(widthElement),
       getter: d => +d.parsedWidth,
+      labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
     }),
     height: makeHistogram({
+      ...options,
       data: filteredData,
-      margin,
       svg: d3.select(heightElement),
       getter: d => +d.parsedHeight,
+      labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
+      unit: 'm',
+    }),
+    ratioHeightWidth: makeHistogram({
+      ...options,
+      data: filteredData,
+      svg: d3.select(ratioHeightWidthElement),
+      getter: d => +d.parsedHeight / +d.parsedWidth,
+      labelFormat: x => d3.format('.3')(x),
     }),
   };
 
   let lastSliderValues = sliderValues;
 
   const titleDates = [...document.querySelectorAll('.date-range')];
-  const updateTitlesDate = (newSliderValues = getSliderValues()) => {
+  const phoneCounts = [...document.querySelectorAll('.phone-count')];
+  const updateLegend = (newSliderValues, phoneCount) => {
     const min = moment(newSliderValues.min);
     const max = moment(newSliderValues.max);
-    const text = `(${min.format('MMM YYYY')} to ${max.format('MMM YYYY')})`;
+    const text = `${min.format('MMM YYYY')} to ${max.format('MMM YYYY')}`;
     titleDates.forEach(elt => {
       elt.innerHTML = text; // eslint-disable-line no-param-reassign
     });
+    phoneCounts.forEach(elt => {
+      elt.innerHTML = phoneCount; // eslint-disable-line no-param-reassign
+    });
   };
 
-  updateTitlesDate(sliderValues);
+  updateLegend(sliderValues, filteredData.length);
 
   slider.on(
     'update',
     _.throttle(() => {
       const newSliderValues = getSliderValues();
       if (_.isEqual(newSliderValues, lastSliderValues)) return;
-      updateTitlesDate(newSliderValues);
       lastSliderValues = newSliderValues;
       const newData = data.filter(
         d =>
           d.momentReleaseDate > moment(newSliderValues.min) &&
           d.momentReleaseDate < moment(newSliderValues.max),
       );
+      updateLegend(newSliderValues, newData.length);
       Object.values(histograms).forEach(histo => histo({ data: newData }));
     }, 100),
   );

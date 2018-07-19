@@ -1,33 +1,65 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Phone Sizes</title>
-    <link rel="stylesheet" type="text/css" href="./size.css" />
-    <script src="/bower_components/d3/d3.js" defer></script>
-    <script src="./d3-tooltip.js" defer></script>
-    <script src="/bower_components/moment/moment.js" defer></script>
-    <script src="/bower_components/lodash/lodash.js" defer></script>
-    <link rel="stylesheet" type="text/css" href="/bower_components/nouislider/distribute/nouislider.css" defer/>
-    <script src="/bower_components/nouislider/distribute/nouislider.js" defer></script>
-    <script src="./size.js" type="module" defer></script>
-  </head>
 
-  <body>
-    <!-- Here is our main header that is used across all the pages of our website -->
+<head>
+  <meta charset="utf-8" />
+  <title>Phone Sizes</title>
+  <link rel="stylesheet" type="text/css" href="./size.css" />
+  <script src="/bower_components/d3/d3.js" defer></script>
+  <script src="./d3-tooltip.js" defer></script>
+  <script src="/bower_components/moment/moment.js" defer></script>
+  <script src="/bower_components/lodash/lodash.js" defer></script>
+  <link rel="stylesheet" type="text/css" href="/bower_components/nouislider/distribute/nouislider.css" defer/>
+  <script src="/bower_components/nouislider/distribute/nouislider.js" defer></script>
+  <script src="./size.js" type="module" defer></script>
+</head>
 
-    <header>
-      <h1>Smartphone Sizes <span class="date-range"></span></h1>
-    </header>
+<body>
+  <!-- Here is our main header that is used across all the pages of our website -->
 
-    <main>
-      <div id="slider-container"><div id="slider"></div></div>
-      <h2>Diagonals</h2>
-      <svg id="histogram-diagonal" width="800" height="400"/>
-      <h2>Heights</h2>
-      <svg id="histogram-height" width="800" height="400"/>
-      <h2>Widths</h2>
-      <svg id="histogram-width" width="800" height="400"/>
-    </main>
-  </body>
+  <header>
+    <h1>Smartphone Sizes</h1>
+    <p>
+      Box plots show the 5% percentile, the median and the 95% percentile
+    </p>
+  </header>
+
+  <main class="histograms">
+    <div class="histograms">
+      <div class="histogram">
+        <h2>Width</h2>
+        <svg id="histogram-width" width="700" height="350" />
+      </div>
+      <div class="histogram">
+        <h2>Height</h2>
+        <svg id="histogram-height" width="700" height="350" />
+      </div>
+      <div class="histogram">
+        <h2>Diagonal</h2>
+        <svg id="histogram-diagonal" width="700" height="350" />
+      </div>
+      <div class="histogram">
+        <h2>Ratio Height/Width</h2>
+        <svg id="histogram-ratio-height-width" width="700" height="350" />
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div id="legend">
+      <p>
+        <strong>Date Range:</strong>
+        <span class="date-range"></span>
+      </p>
+      <p>
+        <strong>Number of phones:</strong>
+        <span class="phone-count"></span>
+      </p>
+    </div>
+    <div id="slider-container">
+      <div id="slider"></div>
+    </div>
+  </footer>
+</body>
+
 </html>
