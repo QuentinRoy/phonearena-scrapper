@@ -161,7 +161,7 @@ const scrappingTransform = new Transform({
       parsedScreenToBodyRatio:
         screenToBodyRatio && parseFloat(screenToBodyRatio) / 100,
       scrappedPage: scrapping.address,
-      sprapDate: scrapping.scrapDate,
+      scrapDate: scrapping.scrapDate,
       scrapper: scrapping.scrapper,
     });
     callback();
