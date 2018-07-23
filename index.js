@@ -180,7 +180,8 @@ const scrapPhones = async ({ pageManager, start, phoneAddresses }, options) => {
                 address,
                 scrapId: id,
                 scrapDate: new Date().toISOString(),
-                scrapper: `${scrapperName} v${version}`,
+                scrapper: scrapperName,
+                scrapperVersion: version,
               };
             } catch (e) {
               log.error(`> Error while scrapping phone at ${address}`);
