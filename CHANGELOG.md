@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.7.0"></a>
+# [0.7.0](https://github.com/QuentinRoy/phonearena-scrapper/compare/v0.6.1...v0.7.0) (2018-07-23)
+
+
+### Bug Fixes
+
+* fix a typo in the export script ([3d897a6](https://github.com/QuentinRoy/phonearena-scrapper/commit/3d897a6))
+* fix percentiles plot ([ac2757f](https://github.com/QuentinRoy/phonearena-scrapper/commit/ac2757f))
+* fix rating scraping ([f071814](https://github.com/QuentinRoy/phonearena-scrapper/commit/f071814))
+
+
+### Features
+
+* brand selection ([c78183d](https://github.com/QuentinRoy/phonearena-scrapper/commit/c78183d))
+* separate scrapper and scrapper version ([e7c5df6](https://github.com/QuentinRoy/phonearena-scrapper/commit/e7c5df6))
+* show quartile ([3304aa6](https://github.com/QuentinRoy/phonearena-scrapper/commit/3304aa6))
+
+
+### BREAKING CHANGES
+
+* scrapper field has changed
+
+
+
 <a name="0.6.1"></a>
 ## [0.6.1](https://github.com/QuentinRoy/phonearena-scrapper/compare/v0.6.0...v0.6.1) (2018-07-19)
 
