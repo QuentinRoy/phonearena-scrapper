@@ -113,10 +113,12 @@ const scrapePhonePage = page =>
       .trim();
 
     // Scrape rating
-    const ratings = Array.from(phoneDiv.querySelectorAll('.rating')).map(e => [
-      e.querySelector('.whosrating').textContent.replace(/(Rating:?)$/g, ''),
-      +e.querySelector('.s_rating_overal').textContent,
-    ]);
+    const ratings = Array.from(phoneDiv.querySelectorAll('.rating')).map(e => ({
+      name: e
+        .querySelector('.whosrating')
+        .textContent.replace(/\s*(rating:?\s*)$/gi, ''),
+      value: +e.querySelector('.s_rating_overal').textContent,
+    }));
 
     // Scrape description
     const descriptionElt = phoneDiv.querySelector('.desc');

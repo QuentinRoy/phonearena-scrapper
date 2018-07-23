@@ -174,7 +174,7 @@ const scrapPhones = async ({ pageManager, start, phoneAddresses }, options) => {
             log.debug(`> Scrapping phone at "${address}"...`);
             try {
               const res = await scrapePhonePage(page);
-              log.debug(`> Done scrapping "${res.name}"`);
+              log.debug(`> Done scrapping "${res.brand} ${res.name}"`);
               return {
                 ...res,
                 address,
@@ -213,7 +213,7 @@ const scrapPhones = async ({ pageManager, start, phoneAddresses }, options) => {
         }, TIME_WINDOW);
         const eta = (n - phonePagesDone) / speed();
         log.info(
-          `"${
+          `"${phoneData.brand} ${
             phoneData.name
           }" scrapped (${phonePagesDone}/${n}, speed: ${Math.round(
             speed() * 60000,
