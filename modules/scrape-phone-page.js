@@ -113,12 +113,26 @@ const scrapePhonePage = page =>
       .trim();
 
     // Scrape rating
-    const ratings = Array.from(phoneDiv.querySelectorAll('.rating')).map(e => ({
-      name: e
-        .querySelector('.whosrating')
-        .textContent.replace(/\s*(rating:?\s*)$/gi, ''),
-      value: +e.querySelector('.s_rating_overal').textContent,
-    }));
+    const ratings = Array.from(phoneDiv.querySelectorAll('.rating')).map(e => {
+      const totalVotes = e.querySelector('.s_total_votes > span');
+      return {
+        name: e
+          .querySelector('.whosrating')
+          .textContent.replace(/\s*(rating:?\s*)$/gi, ''),
+        value: +e.querySelector('.s_rating_overal').textContent,
+        totalVotes: totalVotes ? +totalVotes.textContent.trim() : undefined,
+      };
+    });
+
+    const visitorsWhoWantIt = +phoneDiv.querySelector(
+      '#have_it .wantitbtn .number',
+    ).textContent;
+    const visitorsWhoHaveIt = +phoneDiv.querySelector(
+      '#have_it .haveitbtn .number',
+    ).textContent;
+    const visitorsWhoHadIt = +phoneDiv.querySelector(
+      '#have_it .haditbtn .number',
+    ).textContent;
 
     // Scrape description
     const descriptionElt = phoneDiv.querySelector('.desc');
@@ -169,6 +183,9 @@ const scrapePhonePage = page =>
       features: quickLookFeatures,
       specs,
       ratings,
+      visitorsWhoWantIt,
+      visitorsWhoHaveIt,
+      visitorsWhoHadIt,
       ...(description ? { description } : {}),
       variants,
     };
