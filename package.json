@@ -10,6 +10,7 @@
     "bower": "^1.8.4",
     "camelcase": "^5.0.0",
     "commander": "^2.16.0",
+    "compare-versions": "^3.3.0",
     "csv-stringify": "^3.1.1",
     "loglevel": "^1.6.1",
     "memize": "^1.0.5",

@@ -5,6 +5,7 @@ const log = require('loglevel');
 const program = require('commander');
 const csvStringify = require('csv-stringify');
 const moment = require('moment');
+const compareVersions = require('compare-versions');
 const { promisify } = require('util');
 
 const { version } = require('../package.json');
@@ -57,18 +58,23 @@ const normalizeDate = date => {
   ).toISOString();
 };
 
-let s;
-
-// Walk through the spec hierarchy and find an item.
-const findScrappingItemByName = (itemList, currentItemName, ...subItemPath) => {
-  if (!itemList) log.debug('wtf', s, currentItemName);
-  const item = itemList.find(item_ => item_.name === currentItemName);
-  // console.log({ itemList, item, currentItemName, subItemPath });
+const scrappingListSearch = (
+  array,
+  targetPath,
+  { valueProp = 'value', nameProp = 'name', itemsProp = 'items' } = {},
+) => {
+  const [currentItemName, ...subItemPath] = targetPath;
+  const item = array.find(item_ => item_[nameProp] === currentItemName);
   if (!item) return undefined;
   if (subItemPath.length > 0) {
-    return findScrappingItemByName(item.items, ...subItemPath);
+    debugger;
+    return scrappingListSearch(item[itemsProp], subItemPath, {
+      valueProp,
+      nameProp,
+      itemsProp,
+    });
   }
-  return item.value;
+  return item[valueProp];
 };
 
 const parseDimension = (dimensionsStr = '') => {
@@ -102,11 +108,10 @@ const parseOS = (os = '') =>
 const scrappingTransform = new Transform({
   objectMode: true,
   transform(scrapping, encoding, callback) {
-    s = scrapping;
     const findMetaInfoItem = (...args) =>
-      findScrappingItemByName(scrapping.metaInfo, ...args);
+      scrappingListSearch(scrapping.metaInfo, args);
     const findSpecItem = (...args) =>
-      findScrappingItemByName(scrapping.specs, ...args);
+      scrappingListSearch(scrapping.specs, args);
 
     // Parse some design stuff.
     const releaseDate = findMetaInfoItem('Release date');
@@ -124,6 +129,28 @@ const scrappingTransform = new Transform({
     const displayTouch = findSpecItem('Display', 'Touchscreen');
     const cellularData = findSpecItem('Cellular', 'Data');
     const cellularGSM = findSpecItem('Cellular', 'GSM');
+    const phoneArenaRating =
+      scrapping.scrapperVersion &&
+      compareVersions(scrapping.scrapperVersion, '0.7.0') >= 0
+        ? scrappingListSearch(scrapping.ratings || [], ['PhoneArena'])
+        : scrappingListSearch(scrapping.ratings || [], ['PhoneArena rating:'], {
+            valueProp: 1,
+          });
+    const userRating =
+      scrapping.scrapperVersion &&
+      compareVersions(scrapping.scrapperVersion, '0.7.0') >= 0
+        ? scrappingListSearch(scrapping.ratings || [], ['User'])
+        : scrappingListSearch(scrapping.ratings || [], ['User rating:'], {
+            nameProp: 0,
+            valueProp: 1,
+          });
+    const userRatingTotalVotes =
+      scrapping.scrapperVersion &&
+      compareVersions(scrapping.scrapperVersion, '0.7.0') >= 0
+        ? scrappingListSearch(scrapping.ratings || [], ['User'], {
+            valueProp: 'totalVotes',
+          })
+        : undefined;
 
     this.push({
       id: scrapping.scrapId,
@@ -160,6 +187,12 @@ const scrappingTransform = new Transform({
       screenToBodyRatio,
       parsedScreenToBodyRatio:
         screenToBodyRatio && parseFloat(screenToBodyRatio) / 100,
+      phoneArenaRating,
+      userRating,
+      userRatingTotalVotes,
+      visitorsWhoWantIt: scrapping.visitorsWhoWantIt,
+      visitorsWhoHaveIt: scrapping.visitorsWhoHaveIt,
+      visitorsWhoHadIt: scrapping.visitorsWhoHadIt,
       scrappedPage: scrapping.address,
       scrapDate: scrapping.scrapDate,
       scrapper: scrapping.scrapper,
