@@ -67,7 +67,6 @@ const scrappingListSearch = (
   const item = array.find(item_ => item_[nameProp] === currentItemName);
   if (!item) return undefined;
   if (subItemPath.length > 0) {
-    debugger;
     return scrappingListSearch(item[itemsProp], subItemPath, {
       valueProp,
       nameProp,
