@@ -48,18 +48,28 @@ footer {
 }
 
 .histograms {
+  display: grid;
   text-align: center;
+  grid-template-columns: [left] 1fr [right] 1fr;
+}
+
+@media screen and (max-width: 800px) {
+  .histograms {
+    grid-template-columns: [left] 1fr;
+  }
 }
 
 .histogram {
-  text-align: left;
-  display: inline-block;
-  margin: 0.2em 2em;
-  border-radius: 1em;
+  place-self: stretch;
   padding: 1em;
 }
 
+.histogram svg {
+  width: 100%;
+}
+
 .histogram h2 {
+  text-align: left;
   padding-left: 1em;
 }
 
@@ -119,7 +129,6 @@ footer {
 #brands-control {
   margin: 0.5em;
 }
-
 
 #brands-control p {
   display: inline-block;

@@ -9,6 +9,7 @@ const CONFIG = {
   heightElement: '#histogram-height',
   widthElement: '#histogram-width',
   ratioHeightWidthElement: '#histogram-ratio-height-width',
+  thicknessElement: '#histogram-thickness',
   maxPhoneAge: 3,
   includedManufacturers: 'all',
   top5Manufacturers: ['apple', 'samsung', 'huawei', 'xiaomi', 'oppo'],
@@ -22,6 +23,8 @@ const CONFIG = {
   brandCheckBoxesElement: '#brand-checkboxes',
   selectAllBrandsElement: '#select-all-brand',
   selectTop5BrandsElement: '#select-top-5-brands',
+  width: 700,
+  height: 350,
 };
 
 const toDecimalYearFormat = momentDate =>
@@ -29,8 +32,6 @@ const toDecimalYearFormat = momentDate =>
 
 const mountHistogram = initOptions => {
   const { svg } = initOptions;
-  const width = +svg.attr('width');
-  const height = +svg.attr('height');
 
   const tip = d3
     .tip()
@@ -125,6 +126,11 @@ const mountHistogram = initOptions => {
       upperPercentile: upperPercentileP,
       labelFormat,
     } = { ...initOptions, ...newOptions }
+    const { width } = svg.node().getBoundingClientRect();
+    const height = width / 2;
+    console.log({height, width}, { ...initOptions, ...newOptions })
+    svg.attr('viewBox', `0 0 ${width} ${height}`);
+    if(!data.length) debugger;
 
     const x = d3.scaleLinear()
       .domain(d3.extent(data, getter)).nice()
@@ -319,18 +325,8 @@ const mountBrandCheckBoxes = ({ brands, div, onChange }) => {
 };
 
 const main = async options => {
-  const {
-    phoneDataAddress,
-    diagonalElement,
-    heightElement,
-    widthElement,
-    ratioHeightWidthElement,
-    brandCheckBoxesElement,
-    selectAllBrandsElement,
-    selectTop5BrandsElement,
-  } = options;
   const top5Manufacturers = Array.from(options.top5Manufacturers).sort();
-  const rawData = await d3.dsv(',', phoneDataAddress);
+  const rawData = await d3.dsv(',', options.phoneDataAddress);
 
   const data = _.sortBy(
     rawData
@@ -398,21 +394,21 @@ const main = async options => {
     diagonal: mountHistogram({
       ...options,
       data: filteredData,
-      svg: d3.select(diagonalElement),
+      svg: d3.select(options.diagonalElement),
       getter: d => d.diagonal,
       labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
     }),
     width: mountHistogram({
       ...options,
       data: filteredData,
-      svg: d3.select(widthElement),
+      svg: d3.select(options.widthElement),
       getter: d => +d.parsedWidth,
       labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
     }),
     height: mountHistogram({
       ...options,
       data: filteredData,
-      svg: d3.select(heightElement),
+      svg: d3.select(options.heightElement),
       getter: d => +d.parsedHeight,
       labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
       unit: 'm',
@@ -420,9 +416,16 @@ const main = async options => {
     ratioHeightWidth: mountHistogram({
       ...options,
       data: filteredData,
-      svg: d3.select(ratioHeightWidthElement),
+      svg: d3.select(options.ratioHeightWidthElement),
       getter: d => +d.parsedHeight / +d.parsedWidth,
       labelFormat: x => d3.format('.3')(x),
+    }),
+    thickness: mountHistogram({
+      ...options,
+      data: filteredData,
+      svg: d3.select(options.thicknessElement),
+      getter: d => +d.parsedThickness,
+      labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
     }),
   };
 
@@ -443,36 +446,46 @@ const main = async options => {
 
   let lastSliderValues = sliderValues;
   let lastIncludedManufacturers = includedManufacturers;
+  let lastData;
 
-  const updateCharts = _.throttle(() => {
+  const updateCharts = _.throttle((force = false) => {
     const newSliderValues = getSliderValues();
-    if (
+    const sameData =
       _.isEqual(newSliderValues, lastSliderValues) &&
-      lastIncludedManufacturers === includedManufacturers
-    )
+      lastIncludedManufacturers === includedManufacturers;
+    if (!force && sameData) {
       return;
+    }
     lastSliderValues = newSliderValues;
     lastIncludedManufacturers = includedManufacturers;
-    const newData = data.filter(
-      d =>
-        d.momentReleaseDate > moment(newSliderValues.min) &&
-        d.momentReleaseDate < moment(newSliderValues.max) &&
-        includedManufacturers.includes(d.brand.toLowerCase()),
-    );
+    const newData =
+      sameData && lastData
+        ? lastData
+        : data.filter(
+            d =>
+              d.momentReleaseDate > moment(newSliderValues.min) &&
+              d.momentReleaseDate < moment(newSliderValues.max) &&
+              includedManufacturers.includes(d.brand.toLowerCase()),
+          );
+    lastData = newData;
     updateLegend(newSliderValues, newData.length);
-    Object.values(histograms).forEach(histo => histo({ data: newData }));
-  }, 100);
+    Object.values(histograms).forEach(histogram =>
+      histogram({ data: newData }),
+    );
+  });
 
-  slider.on('update', updateCharts);
-
-  const selectAllCheckbox = document.querySelector(selectAllBrandsElement);
+  const selectAllCheckbox = document.querySelector(
+    options.selectAllBrandsElement,
+  );
   const selectTop5BrandsCheckbox = document.querySelector(
-    selectTop5BrandsElement,
+    options.selectTop5BrandsElement,
   );
   const onCheckBoxesChange = brands => {
     includedManufacturers = brands.map(b => b.toLowerCase()).sort();
     Array.from(
-      document.querySelectorAll(`${brandCheckBoxesElement} .brand-checkbox`),
+      document.querySelectorAll(
+        `${options.brandCheckBoxesElement} .brand-checkbox`,
+      ),
     ).forEach(c => {
       c.checked = includedManufacturers.includes(c.dataset.brand.toLowerCase()); // eslint-disable-line no-param-reassign
     });
@@ -489,7 +502,7 @@ const main = async options => {
       name: b,
       included: includedManufacturers.includes(b.toLowerCase()),
     })),
-    div: document.querySelector(brandCheckBoxesElement),
+    div: document.querySelector(options.brandCheckBoxesElement),
     onChange() {
       onCheckBoxesChange(getSelectedBrands());
     },
@@ -509,7 +522,7 @@ const main = async options => {
       if (selectTop5BrandsCheckbox.checked) {
         Array.from(
           document.querySelectorAll(
-            `${brandCheckBoxesElement} .brand-checkbox`,
+            `${options.brandCheckBoxesElement} .brand-checkbox`,
           ),
         ).forEach(c => {
           // eslint-disable-next-line no-param-reassign
@@ -517,6 +530,18 @@ const main = async options => {
         });
         onCheckBoxesChange(top5Manufacturers);
       }
+    },
+    { passive: true },
+  );
+
+  slider.on('update', () => {
+    updateCharts();
+  });
+
+  window.addEventListener(
+    'resize',
+    () => {
+      updateCharts(true);
     },
     { passive: true },
   );
