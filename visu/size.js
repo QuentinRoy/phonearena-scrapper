@@ -10,9 +10,19 @@ const CONFIG = {
   widthElement: '#histogram-width',
   ratioHeightWidthElement: '#histogram-ratio-height-width',
   thicknessElement: '#histogram-thickness',
+  weightElement: '#histogram-weight',
   maxPhoneAge: 3,
   includedManufacturers: 'all',
-  top5Manufacturers: ['apple', 'samsung', 'huawei', 'xiaomi', 'oppo'],
+  top5Manufacturers: [
+    'Apple',
+    'Samsung',
+    'LG',
+    'Google',
+    'Motorola',
+    'Sony',
+    'HTC',
+    'Huawei',
+  ].map(b => b.toLocaleLowerCase()),
   barColor: 'steelblue',
   phoneHoverColor: '#84B2E0',
   barLabelColor: '#326FAB',
@@ -22,7 +32,7 @@ const CONFIG = {
   upperPercentile: 0.95,
   brandCheckBoxesElement: '#brand-checkboxes',
   selectAllBrandsElement: '#select-all-brand',
-  selectTop5BrandsElement: '#select-top-5-brands',
+  selectTopBrandsElement: '#select-top-brands',
   width: 700,
   height: 350,
 };
@@ -35,11 +45,13 @@ const mountHistogram = initOptions => {
 
   const tip = d3
     .tip()
+    .offset([5, 2])
     .attr('class', 'd3-tip')
     .html(
       d => `
         <h3>${d.brand} ${d.name}</h3>
-        <p>${d.parsedWidth} x ${d.parsedHeight} x ${d.parsedThickness}mm</p>
+        <p>${d.parsedWidth} ✕ ${d.parsedHeight} ✕ ${d.parsedThickness}mm</p>
+        <p>(diagonal ${d3.format('.3s')(d.diagonal / 1000)}m)</p>
       `,
     )
     .direction('e');
@@ -112,7 +124,7 @@ const mountHistogram = initOptions => {
   // prettier-ignore
   const update = newOptions => {
     const {
-      data,
+      data: unfilteredData,
       margin,
       getter,
       barColor,
@@ -128,9 +140,9 @@ const mountHistogram = initOptions => {
     } = { ...initOptions, ...newOptions }
     const { width } = svg.node().getBoundingClientRect();
     const height = width / 2;
-    console.log({height, width}, { ...initOptions, ...newOptions })
     svg.attr('viewBox', `0 0 ${width} ${height}`);
-    if(!data.length) debugger;
+
+    const data = unfilteredData.filter(d => d !== 0 && !!getter(d));
 
     const x = d3.scaleLinear()
       .domain(d3.extent(data, getter)).nice()
@@ -309,7 +321,13 @@ const mountBrandCheckBoxes = ({ brands, div, onChange }) => {
     checkBoxDiv.classList.add('brand-checkbox-wrapper');
     div.appendChild(checkBoxDiv);
     checkBoxDiv.innerHTML = `
-      <input type="checkbox" class="brand-checkbox" id="${checkboxId}" data-brand="${name}" checked="${included}"></input>
+      <input
+        type="checkbox"
+        class="brand-checkbox"
+        id="${checkboxId}"
+        data-brand="${name}"
+        checked="${included}"
+      ></input>
       <label for=${checkboxId}>${name}</label>
     `;
     checkBoxDiv
@@ -333,7 +351,6 @@ const main = async options => {
       .filter(
         d =>
           d.parsedReleaseDate &&
-          d.dimensions &&
           d.deviceType &&
           d.deviceType.toLowerCase().replace(' ', '') === 'smartphone',
       )
@@ -427,6 +444,13 @@ const main = async options => {
       getter: d => +d.parsedThickness,
       labelFormat: d => `${d3.format('.3s')(d / 1000)}m`,
     }),
+    weightElement: mountHistogram({
+      ...options,
+      data: filteredData,
+      svg: d3.select(options.weightElement),
+      getter: d => +d.parsedWeight,
+      labelFormat: d => `${d3.format('.3s')(d)}g`,
+    }),
   };
 
   const titleDates = [...document.querySelectorAll('.date-range')];
@@ -477,8 +501,8 @@ const main = async options => {
   const selectAllCheckbox = document.querySelector(
     options.selectAllBrandsElement,
   );
-  const selectTop5BrandsCheckbox = document.querySelector(
-    options.selectTop5BrandsElement,
+  const selectTopBrandsCheckbox = document.querySelector(
+    options.selectTopBrandsElement,
   );
   const onCheckBoxesChange = brands => {
     includedManufacturers = brands.map(b => b.toLowerCase()).sort();
@@ -487,10 +511,11 @@ const main = async options => {
         `${options.brandCheckBoxesElement} .brand-checkbox`,
       ),
     ).forEach(c => {
-      c.checked = includedManufacturers.includes(c.dataset.brand.toLowerCase()); // eslint-disable-line no-param-reassign
+      // eslint-disable-next-line no-param-reassign
+      c.checked = includedManufacturers.includes(c.dataset.brand.toLowerCase());
     });
     selectAllCheckbox.checked = brands.length === allBrands.length;
-    selectTop5BrandsCheckbox.checked = _.isEqual(
+    selectTopBrandsCheckbox.checked = _.isEqual(
       includedManufacturers,
       top5Manufacturers,
     );
@@ -516,10 +541,10 @@ const main = async options => {
     { passive: true },
   );
 
-  selectTop5BrandsCheckbox.addEventListener(
+  selectTopBrandsCheckbox.addEventListener(
     'change',
     () => {
-      if (selectTop5BrandsCheckbox.checked) {
+      if (selectTopBrandsCheckbox.checked) {
         Array.from(
           document.querySelectorAll(
             `${options.brandCheckBoxesElement} .brand-checkbox`,
