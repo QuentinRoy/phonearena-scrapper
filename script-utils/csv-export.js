@@ -64,7 +64,10 @@ const scrappingListSearch = (
   { valueProp = 'value', nameProp = 'name', itemsProp = 'items' } = {},
 ) => {
   const [currentItemName, ...subItemPath] = targetPath;
-  const item = array.find(item_ => item_[nameProp] === currentItemName);
+  const item = array.find(
+    item_ =>
+      item_[nameProp] && item_[nameProp].trim() === currentItemName.trim(),
+  );
   if (!item) return undefined;
   if (subItemPath.length > 0) {
     return scrappingListSearch(item[itemsProp], subItemPath, {
@@ -122,7 +125,9 @@ const scrappingTransform = new Transform({
     const formFactor = findSpecItem('Design', 'Form factor');
     const OS = findSpecItem('Design', 'OS');
     const deviceType = findSpecItem('Design', 'Device type');
-    const displaySize = findSpecItem('Display', 'Physical size');
+    const displaySize =
+      findSpecItem('Display', 'Physical size') ||
+      findSpecItem('Display', 'Display size');
     const displayResolution = findSpecItem('Display', 'Resolution');
     const screenToBodyRatio = findSpecItem('Display', 'Screen-to-body ratio');
     const displayTouch = findSpecItem('Display', 'Touchscreen');
@@ -180,7 +185,7 @@ const scrappingTransform = new Transform({
         : false,
       displaySize,
       parsedDisplayMMDiagonal:
-        displaySize && inchesToMM(parseInt(displaySize, 10)),
+        displaySize && inchesToMM(parseFloat(displaySize)),
       displayResolution,
       ...parseDisplayResolution(displayResolution),
       screenToBodyRatio,
