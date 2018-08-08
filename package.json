@@ -9,15 +9,15 @@
   "dependencies": {
     "bower": "^1.8.4",
     "camelcase": "^5.0.0",
-    "commander": "^2.16.0",
+    "commander": "^2.17.1",
     "compare-versions": "^3.3.0",
     "csv-stringify": "^3.1.1",
     "loglevel": "^1.6.1",
     "memize": "^1.0.5",
     "moment": "^2.22.2",
-    "puppeteer": "^1.5.0",
+    "puppeteer": "^1.6.2",
     "sanitize-filename": "^1.6.1",
-    "serve": "^9.3.0",
+    "serve": "^9.4.0",
     "standard-version": "^4.4.0"
   },
   "devDependencies": {
@@ -26,7 +26,7 @@
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-import": "^2.13.0",
     "eslint-plugin-prettier": "^2.6.2",
-    "prettier": "^1.13.7"
+    "prettier": "^1.14.0"
   },
   "scripts": {
     "start": "node index.js",
