@@ -53,7 +53,7 @@ const scrapePhonePage = page =>
       titleElt = titleElt.querySelector('.s_tooltip_anchor') || titleElt;
       let name = titleElt.textContent;
       name = name.trim();
-      if (name.endsWith(':')) name = name.slice(0, -1);
+      if (name.endsWith(':')) name = name.slice(0, -1).trim();
       return name;
     };
 
